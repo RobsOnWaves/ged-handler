@@ -13,5 +13,3 @@ if __name__ == '__main__':
     print(str(ged_handler.get_filename()))
 
     ged_handler.to_dict()
-
-

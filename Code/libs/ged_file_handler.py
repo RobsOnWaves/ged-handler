@@ -1,29 +1,28 @@
 from pathlib import Path
 
-
 class GedFileHandler:
     def __init__(self, file: Path):
         self.file = file
-        self.current_document = {}
+        self.__current_document__ = {}
 
     def get_filename(self):
-        self.file.name
+        return self.file.name
 
     def __handle_new_document__(self, decomposed_line: [str]):
         # Starting a new section ?
         if decomposed_line[0] == '0':
             if decomposed_line[1] == 'HEAD':
-                self.current_document = {'node_type': 'head'}
-            if decomposed_line[1] == 'TRLR':
+                self.__current_document__ = {'node_type': 'head'}
+            elif decomposed_line[1] == 'TRLR':
                 return
             else:
                 try:
                     if decomposed_line[2] == 'INDI':
-                        self.current_document = {'node_type': 'person'}
+                        self.__current_document__ = {'node_type': 'person', 'ged_id': decomposed_line[1]}
                     elif decomposed_line[2] == 'FAM':
-                        self.current_document = {'node_type': 'family'}
+                        self.__current_document__ = {'node_type': 'family', 'ged_id': decomposed_line[1]}
                     elif decomposed_line[2] == 'SUBM':
-                        self.current_document = {'node_type': 'subm'}
+                        self.__current_document__ = {'node_type': 'subm'}
 
                 except Exception as e:
                     print('error in parsing levels 0:' + str(e))
@@ -40,10 +39,26 @@ class GedFileHandler:
                     first_line = True
                     if decomposed_line[0] == '\ufeff0':
                         decomposed_line[0] = '0'
+                    previous_line_level = [decomposed_line[0], decomposed_line[1]]
 
                 self.__handle_new_document__(decomposed_line=decomposed_line)
+                if decomposed_line[0] != '0':
+                    if (previous_line_level[0] == '1' or previous_line_level[0] == '0') and decomposed_line[0] == '1': #new subsection
+                        if len(decomposed_line) > 2:
+                            if decomposed_line[1] == 'NAME':
+
+
+                                self.__current_document__.update({decomposed_line[1]:
+                                                                      {'given_names': decomposed_line[2:len(decomposed_line) -  1],
+                                                                       'family_name': decomposed_line[-1]
+                                                                       }
+                                                                  })
+
                 print(decomposed_line)
-                print(self.current_document)
+
+                print(self.__current_document__)
+
+                previous_line_level = [decomposed_line[0], decomposed_line[1]]
 
 
 
