@@ -48,10 +48,14 @@ class GedFileHandler:
                             if decomposed_line[1] == 'NAME':
 
 
-                                self.__current_document__.update({decomposed_line[1]:
-                                                                      {'given_names': decomposed_line[2:len(decomposed_line) -  1],
-                                                                       'family_name': decomposed_line[-1]
+                                self.__current_document__.update({'name':
+                                                                      {'given_names': line[line.find('NAME')+4:line.find('/')].split(),
+                                                                       'family_name': line[line.find('/'):].replace('/','')
                                                                        }
+                                                                  })
+                            if decomposed_line[1] == 'SEX':
+                                self.__current_document__.update({'sex':
+                                                                      'female' if decomposed_line[2] == 'F' else 'male'
                                                                   })
 
                 print(decomposed_line)
