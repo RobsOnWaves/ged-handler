@@ -65,33 +65,32 @@ class GedFileHandler:
 
                 self.__handle_new_document__(decomposed_line=decomposed_line)
                 if decomposed_line[0] != '0':
-                    if (previous_line_level[0] == '1' or previous_line_level[0] == '0') and decomposed_line[
-                        0] == '1':  # new subsection
+                    # new section
+                    if (previous_line_level[0] == '1' or previous_line_level[0] == '0') and decomposed_line[0] == '1':
                         if len(decomposed_line) > 2:
                             if decomposed_line[1] == 'NAME':
                                 self.__current_document__.update({'name':
-                                                                      {'given_names': line[
-                                                                                      line.find('NAME') + 4:line.find(
-                                                                                          '/')].split(),
-                                                                       'family_name': line[line.find('/'):].replace('/',
-                                                                                                                    '')
-                                                                       }
+                                                                  {'given_names': line[
+                                                                                  line.find('NAME') + 4:line.find('/')
+                                                                                  ].split(),
+                                                                   'family_name': line[line.find('/'):].replace('/', '')
+                                                                   }
                                                                   })
                             if decomposed_line[1] == 'SEX':
                                 self.__current_document__.update({'sex':
-                                                                      'female' if decomposed_line[2] == 'F' else 'male'
-                                                                  })
+                                                                 'female' if decomposed_line[2] == 'F' else 'male'}
+                                                                 )
                         elif decomposed_line[1] == 'BIRT':
                             self.__handle_active_subsection__('birth')
 
                     if self.__subsection__ == 'birth' and decomposed_line[0] == '2':
                         if decomposed_line[1] == 'DATE' and len(decomposed_line) == 5:  # full date
                             self.__current_document__.update({'birth_info':
-                                                                  {'date':  date.fromisoformat(decomposed_line[4] + '-' +
-                                                                            month_lut.get(decomposed_line[3]) + '-' +
-                                                                            (decomposed_line[2] if len(decomposed_line[2])==2 else '0' + decomposed_line[2]))
-                                                                   }
-                                                              })
+                                                             {'date': date.fromisoformat(decomposed_line[4]
+                                                                                         + '-' +
+                                                                                         month_lut.get(decomposed_line[3])
+                                                                                         + '-' +
+                                                                                         (decomposed_line[2] if len(decomposed_line[2]) == 2 else '0' + decomposed_line[2]))}})
 
                 print(decomposed_line)
 
