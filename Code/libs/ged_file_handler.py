@@ -49,6 +49,23 @@ class GedFileHandler:
     def __handle_active_subsection__(self, subsection: str):
         self.__subsection__ = subsection
 
+    def __convert_date__(self, event_type: str, date_raw: str):
+        if len(date_raw) == 5:  # full date
+            self.__current_document__.update({event_type: {'date': date.fromisoformat(date_raw[4]
+                                                                                      + '-' +
+                                                                                      month_lut.get(date_raw[3])
+                                                                                      + '-' +
+                                                                                      (date_raw[2] if len(date_raw[2]) == 2 else '0' + date_raw[2])),
+                                                           'date_type': 'full_date'
+                                                           }})
+
+        elif len(date_raw) == 3:  # only the year
+            self.__current_document__.update({event_type: {'date': date.fromisoformat(date_raw[2] + '-01-01'),
+                                                           'date_type': 'year_only'
+                                                           }
+                                              }
+                                             )
+
     def to_dict(self):
         first_line = False
         with open(self.file, 'r') as f:
@@ -66,7 +83,13 @@ class GedFileHandler:
                 self.__handle_new_document__(decomposed_line=decomposed_line)
                 if decomposed_line[0] != '0':
                     # new section
-                    if (previous_line_level[0] == '1' or previous_line_level[0] == '0') and decomposed_line[0] == '1':
+                    if (
+                            previous_line_level[0] == '1'
+                            or previous_line_level[0] == '0'
+                            or previous_line_level[0] == '2'
+                    )\
+                            and decomposed_line[0] == '1':
+
                         if len(decomposed_line) > 2:
                             if decomposed_line[1] == 'NAME':
                                 self.__current_document__.update({'name':
@@ -83,14 +106,40 @@ class GedFileHandler:
                         elif decomposed_line[1] == 'BIRT':
                             self.__handle_active_subsection__('birth')
 
-                    if self.__subsection__ == 'birth' and decomposed_line[0] == '2':
+                        elif decomposed_line[1] == 'DEAT':
+                            self.__handle_active_subsection__('death')
+
+                    if self.__subsection__ == 'birth':
+                        if decomposed_line[0] == '2':
+                            if decomposed_line[1] == 'DATE':
+                                if len(decomposed_line) == 5:  # full date
+                                    self.__current_document__.update({'birth_info':
+                                                                     {'date': date.fromisoformat(
+                                                                                    decomposed_line[4]
+                                                                                    + '-' +
+                                                                                    month_lut.get(decomposed_line[3])
+                                                                                    + '-' +
+                                                                                    (decomposed_line[2] if len(decomposed_line[2]) == 2 else '0' + decomposed_line[2])),
+                                                                      'date_type': 'full_date'
+                                                                      }})
+
+                                elif len(decomposed_line) == 3:  # only the year
+                                    self.__current_document__.update({'birth_info':
+                                                                     {'date': date.fromisoformat(decomposed_line[2]
+                                                                                                 + '-01-01'),
+                                                                      'date_type': 'year_only'
+                                                                      }})
+
+                    if self.__subsection__ == 'death' and decomposed_line[0] == '2':
                         if decomposed_line[1] == 'DATE' and len(decomposed_line) == 5:  # full date
-                            self.__current_document__.update({'birth_info':
-                                                             {'date': date.fromisoformat(decomposed_line[4]
-                                                                                         + '-' +
-                                                                                         month_lut.get(decomposed_line[3])
-                                                                                         + '-' +
-                                                                                         (decomposed_line[2] if len(decomposed_line[2]) == 2 else '0' + decomposed_line[2]))}})
+                            self.__current_document__.update({'death_info':
+                                                             {'date': date.fromisoformat(
+                                                                            decomposed_line[4]
+                                                                            + '-' +
+                                                                            month_lut.get(decomposed_line[3])
+                                                                            + '-' +
+                                                                            (decomposed_line[2] if len(decomposed_line[2]) == 2 else '0' + decomposed_line[2]))
+                                                              }})
 
                 print(decomposed_line)
 
