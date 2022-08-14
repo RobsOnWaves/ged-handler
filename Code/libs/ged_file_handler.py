@@ -49,13 +49,15 @@ class GedFileHandler:
     def __handle_active_subsection__(self, subsection: str):
         self.__subsection__ = subsection
 
-    def __convert_date__(self, event_type: str, date_raw: str):
+    def __convert_date__(self, event_type: str, date_raw: [str]):
         if len(date_raw) == 5:  # full date
             self.__current_document__.update({event_type: {'date': date.fromisoformat(date_raw[4]
                                                                                       + '-' +
                                                                                       month_lut.get(date_raw[3])
                                                                                       + '-' +
-                                                                                      (date_raw[2] if len(date_raw[2]) == 2 else '0' + date_raw[2])),
+                                                                                      (date_raw[2] if
+                                                                                       len(date_raw[2]) == 2
+                                                                                       else '0' + date_raw[2])),
                                                            'date_type': 'full_date'
                                                            }})
 
@@ -112,34 +114,12 @@ class GedFileHandler:
                     if self.__subsection__ == 'birth':
                         if decomposed_line[0] == '2':
                             if decomposed_line[1] == 'DATE':
-                                if len(decomposed_line) == 5:  # full date
-                                    self.__current_document__.update({'birth_info':
-                                                                     {'date': date.fromisoformat(
-                                                                                    decomposed_line[4]
-                                                                                    + '-' +
-                                                                                    month_lut.get(decomposed_line[3])
-                                                                                    + '-' +
-                                                                                    (decomposed_line[2] if len(decomposed_line[2]) == 2 else '0' + decomposed_line[2])),
-                                                                      'date_type': 'full_date'
-                                                                      }})
+                                self.__convert_date__('birth', decomposed_line)
 
-                                elif len(decomposed_line) == 3:  # only the year
-                                    self.__current_document__.update({'birth_info':
-                                                                     {'date': date.fromisoformat(decomposed_line[2]
-                                                                                                 + '-01-01'),
-                                                                      'date_type': 'year_only'
-                                                                      }})
-
-                    if self.__subsection__ == 'death' and decomposed_line[0] == '2':
-                        if decomposed_line[1] == 'DATE' and len(decomposed_line) == 5:  # full date
-                            self.__current_document__.update({'death_info':
-                                                             {'date': date.fromisoformat(
-                                                                            decomposed_line[4]
-                                                                            + '-' +
-                                                                            month_lut.get(decomposed_line[3])
-                                                                            + '-' +
-                                                                            (decomposed_line[2] if len(decomposed_line[2]) == 2 else '0' + decomposed_line[2]))
-                                                              }})
+                    if self.__subsection__ == 'death':
+                        if decomposed_line[0] == '2':
+                            if decomposed_line[1] == 'DATE':
+                                self.__convert_date__('death', decomposed_line)
 
                 print(decomposed_line)
 
