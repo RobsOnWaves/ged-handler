@@ -49,24 +49,50 @@ class GedFileHandler:
     def __handle_active_subsection__(self, subsection: str):
         self.__subsection__ = subsection
 
-    def __convert_date__(self, event_type: str, date_raw: [str]):
-        if len(date_raw) == 5:  # full date
-            self.__current_document__.update({event_type: {'date': date.fromisoformat(date_raw[4]
-                                                                                      + '-' +
-                                                                                      month_lut.get(date_raw[3])
-                                                                                      + '-' +
-                                                                                      (date_raw[2] if
-                                                                                       len(date_raw[2]) == 2
-                                                                                       else '0' + date_raw[2])),
-                                                           'date_type': 'full_date'
-                                                           }})
+    def __handle_date_place__(self, event_type: str, line_decomposed: [str], line_raw: str):
+        if line_decomposed[1] == 'DATE':
+            # Initiating the event
+            self.__current_document__[event_type] = {}
+            self.__current_document__[event_type]['date_info'] = {}
 
-        elif len(date_raw) == 3:  # only the year
-            self.__current_document__.update({event_type: {'date': date.fromisoformat(date_raw[2] + '-01-01'),
-                                                           'date_type': 'year_only'
-                                                           }
-                                              }
-                                             )
+            if len(line_decomposed) == 5:  # full date
+
+                self.__current_document__[event_type]['date_info']['date'] = date.fromisoformat(line_decomposed[4]
+                                                                                                + '-' +
+                                                                                                month_lut.get(
+                                                                                                    line_decomposed[3])
+                                                                                                + '-' +
+                                                                                                (line_decomposed[2] if
+                                                                                                len(line_decomposed[2])
+                                                                                                == 2
+                                                                                                else '0'
+                                                                                                     + line_decomposed[
+                                                                                                         2]))
+
+                self.__current_document__[event_type]['date_info']['date_type'] = 'full_date'
+
+            elif len(line_decomposed) == 3:  # only the year
+                self.__current_document__[event_type]['date_info']['date'] = date.fromisoformat(line_decomposed[2]
+                                                                                                + '-01-01')
+                self.__current_document__[event_type]['date_info']['date_type'] = 'year_only'
+
+            elif len(line_decomposed) == 4:  # month + year
+                self.__current_document__[event_type]['date_info']['date'] = date.fromisoformat(line_decomposed[3]
+                                                                                                + '-' +
+                                                                                                month_lut[
+                                                                                                    line_decomposed[2]]
+                                                                                                + '-01')
+                self.__current_document__[event_type]['date_info']['date_type'] = 'year_month_only'
+
+            else:
+                raise Exception('unhandled date line' + line_decomposed)
+
+        if line_decomposed[1] == 'PLAC':
+            try:
+                self.__current_document__[event_type]['place'] = line_raw.replace('2 PLAC ', '')
+
+            except Exception as e:
+                print('Exception adding a place to the current entry:' + str(e))
 
     def to_dict(self):
         first_line = False
@@ -94,32 +120,29 @@ class GedFileHandler:
 
                         if len(decomposed_line) > 2:
                             if decomposed_line[1] == 'NAME':
-                                self.__current_document__.update({'name':
-                                                                  {'given_names': line[
+                                self.__current_document__['name'] = {}
+                                self.__current_document__['name']['given_names'] = line[
                                                                                   line.find('NAME') + 4:line.find('/')
-                                                                                  ].split(),
-                                                                   'family_name': line[line.find('/'):].replace('/', '')
-                                                                   }
-                                                                  })
+                                                                                  ].split()
+
+                                self.__current_document__['name']['family_name'] = line[line.find('/'):].replace(
+                                                                                                                 '/', ''
+                                                                                                                )
+
                             if decomposed_line[1] == 'SEX':
-                                self.__current_document__.update({'sex':
-                                                                 'female' if decomposed_line[2] == 'F' else 'male'}
-                                                                 )
+                                self.__current_document__['sex'] = 'female' if decomposed_line[2] == 'F' else 'male'
+
                         elif decomposed_line[1] == 'BIRT':
                             self.__handle_active_subsection__('birth')
 
                         elif decomposed_line[1] == 'DEAT':
                             self.__handle_active_subsection__('death')
 
-                    if self.__subsection__ == 'birth':
-                        if decomposed_line[0] == '2':
-                            if decomposed_line[1] == 'DATE':
-                                self.__convert_date__('birth', decomposed_line)
+                    if self.__subsection__ == 'birth' and decomposed_line[0] == '2':
+                        self.__handle_date_place__('birth', decomposed_line, line)
 
-                    if self.__subsection__ == 'death':
-                        if decomposed_line[0] == '2':
-                            if decomposed_line[1] == 'DATE':
-                                self.__convert_date__('death', decomposed_line)
+                    if self.__subsection__ == 'death' and decomposed_line[0] == '2':
+                        self.__handle_date_place__('death', decomposed_line, line)
 
                 print(decomposed_line)
 
