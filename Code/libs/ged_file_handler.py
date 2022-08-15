@@ -37,7 +37,10 @@ class GedFileHandler:
             else:
                 try:
                     if decomposed_line[2] == 'INDI':
-                        self.__current_document__ = {'node_type': 'person', 'ged_id': decomposed_line[1]}
+                        self.__current_document__ = {'node_type': 'person',
+                                                     'ged_id': decomposed_line[1],
+                                                     'fams': [],
+                                                     'famc': []}
                     elif decomposed_line[2] == 'FAM':
                         self.__current_document__ = {'node_type': 'family', 'ged_id': decomposed_line[1]}
                     elif decomposed_line[2] == 'SUBM':
@@ -140,6 +143,14 @@ class GedFileHandler:
 
                         elif decomposed_line[1] == 'DEAT':
                             self.__handle_active_subsection__('death')
+
+                        elif decomposed_line[1] == 'FAMS' and self.__current_document__['node_type'] == 'person':
+                            self.__handle_active_subsection__('fams')
+                            self.__current_document__['fams'].append(decomposed_line[2])
+
+                        elif decomposed_line[1] == 'FAMC' and self.__current_document__['node_type'] == 'person':
+                            self.__handle_active_subsection__('famc')
+                            self.__current_document__['famc'].append(decomposed_line[2])
 
                     if self.__subsection__ == 'birth' and decomposed_line[0] == '2':
                         self.__handle_date_place__('birth', decomposed_line, line)
