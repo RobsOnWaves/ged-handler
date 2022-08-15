@@ -118,19 +118,22 @@ class GedFileHandler:
                     )\
                             and decomposed_line[0] == '1':
 
-                        if len(decomposed_line) > 2:
-                            if decomposed_line[1] == 'NAME':
-                                self.__current_document__['name'] = {}
-                                self.__current_document__['name']['given_names'] = line[
-                                                                                  line.find('NAME') + 4:line.find('/')
-                                                                                  ].split()
+                        if decomposed_line[1] == 'NAME':
+                            self.__current_document__['name'] = {}
+                            self.__current_document__['name']['given_names'] = line[
+                                                                              line.find('NAME') + 4:line.find('/')
+                                                                              ].split()
 
-                                self.__current_document__['name']['family_name'] = line[line.find('/'):].replace(
-                                                                                                                 '/', ''
-                                                                                                                )
+                            self.__current_document__['name']['family_name'] = line[line.find('/'):].replace(
+                                                                                                             '/', ''
+                                                                                                            )
 
-                            if decomposed_line[1] == 'SEX':
-                                self.__current_document__['sex'] = 'female' if decomposed_line[2] == 'F' else 'male'
+                        elif decomposed_line[1] == 'SEX':
+                            self.__current_document__['sex'] = 'female' if decomposed_line[2] == 'F' else 'male'
+
+                        elif decomposed_line[1] == 'NOTE':
+                            self.__handle_active_subsection__('note')
+                            self.__current_document__['note'] = line.replace('1 NOTE ', '')
 
                         elif decomposed_line[1] == 'BIRT':
                             self.__handle_active_subsection__('birth')
@@ -143,6 +146,10 @@ class GedFileHandler:
 
                     if self.__subsection__ == 'death' and decomposed_line[0] == '2':
                         self.__handle_date_place__('death', decomposed_line, line)
+
+                    if self.__subsection__ == 'note' and decomposed_line[0] == '2' and decomposed_line[1] == 'CONT':
+                        self.__current_document__['note'] = self.__current_document__['note'] \
+                                                            + ' ' + line.replace('2 CONT ', '')
 
                 print(decomposed_line)
 
