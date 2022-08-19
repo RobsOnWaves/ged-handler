@@ -34,6 +34,9 @@ class GedFileHandler:
         self.file = file
         self.__current_document__ = {}
         self.__subsection__ = str
+        self.__previous_document__ = {}
+        self.listed_documents = []
+        self.to_list_of_dict()
 
     def get_filename(self):
         return self.file.name
@@ -44,7 +47,8 @@ class GedFileHandler:
             if decomposed_line[1] == 'HEAD':
                 self.__current_document__ = {'node_type': 'head'}
             elif decomposed_line[1] == 'TRLR':
-                return
+                self.listed_documents.append(self.__previous_document__)
+                return 'end of file'
             else:
                 try:
                     if decomposed_line[2] == 'INDI':
@@ -58,6 +62,11 @@ class GedFileHandler:
 
                 except Exception as e:
                     print('error in parsing levels 0:' + str(e))
+
+            self.listed_documents.append(self.__previous_document__)
+            return 'new section'
+
+        return 'in section'
 
     def __handle_links__(self, link_type: str, payload: str):
         self.__handle_active_subsection__(link_type)
@@ -114,13 +123,14 @@ class GedFileHandler:
             except Exception as e:
                 print('Exception adding a place to the current entry:' + str(e))
 
-    def to_dict(self):
+    def to_list_of_dict(self):
         first_line = False
         with open(self.file, 'r') as f:
             for line in f.read().split('\n'):
                 print(line)
                 decomposed_line = line.split(' ')
-
+                if len(decomposed_line) in [0, 1]:
+                    continue
                 # handling utf-8 mess
                 if first_line is False:
                     first_line = True
@@ -128,8 +138,10 @@ class GedFileHandler:
                         decomposed_line[0] = '0'
                     previous_line_level = [decomposed_line[0], decomposed_line[1]]
 
-                self.__handle_new_document__(decomposed_line=decomposed_line)
-                if decomposed_line[0] != '0':
+                self.__previous_document__ = self.__current_document__
+                status_file = self.__handle_new_document__(decomposed_line=decomposed_line)
+
+                if status_file == 'in section':
                     # new section
                     if (
                             previous_line_level[0] == '1'
@@ -184,4 +196,5 @@ class GedFileHandler:
 
                 print(self.__current_document__)
 
-                previous_line_level = [decomposed_line[0], decomposed_line[1]]
+                if status_file != 'end of file':
+                    previous_line_level = [decomposed_line[0], decomposed_line[1]]
