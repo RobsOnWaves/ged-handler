@@ -1,24 +1,35 @@
 from pathlib import Path
 from datetime import date
 
-month_lut = {
-    'JAN': '01',
-    'FEB': '02',
-    'MAR': '03',
-    'APR': '04',
-    'MAY': '05',
-    'JUN': '06',
-    'JUL': '07',
-    'AUG': '08',
-    'SEP': '09',
-    'OCT': '10',
-    'NOV': '11',
-    'DEC': '12',
-
-}
-
 
 class GedFileHandler:
+
+    __month_lut__ = {
+        'JAN': '01',
+        'FEB': '02',
+        'MAR': '03',
+        'APR': '04',
+        'MAY': '05',
+        'JUN': '06',
+        'JUL': '07',
+        'AUG': '08',
+        'SEP': '09',
+        'OCT': '10',
+        'NOV': '11',
+        'DEC': '12',
+
+    }
+
+    __links_keywords__ = ['HUSB', 'WIFE', 'CHIL', 'FAMC', 'FAMS']
+
+    __links_lut__ = {
+        'HUSB': 'husband',
+        'WIFE': 'wife',
+        'CHIL': 'children',
+        'FAMS': 'fams',
+        'FAMC': 'famc'
+    }
+
     def __init__(self, file: Path):
         self.file = file
         self.__current_document__ = {}
@@ -39,8 +50,7 @@ class GedFileHandler:
                     if decomposed_line[2] == 'INDI':
                         self.__current_document__ = {'node_type': 'person',
                                                      'ged_id': decomposed_line[1],
-                                                     'fams': [],
-                                                     'famc': []}
+                                                     }
                     elif decomposed_line[2] == 'FAM':
                         self.__current_document__ = {'node_type': 'family', 'ged_id': decomposed_line[1]}
                     elif decomposed_line[2] == 'SUBM':
@@ -48,6 +58,13 @@ class GedFileHandler:
 
                 except Exception as e:
                     print('error in parsing levels 0:' + str(e))
+
+    def __handle_links__(self, link_type: str, payload: str):
+        self.__handle_active_subsection__(link_type)
+        if link_type in self.__current_document__:
+            self.__current_document__[link_type].append(payload)
+        else:
+            self.__current_document__[link_type] = [payload]
 
     def __handle_active_subsection__(self, subsection: str):
         self.__subsection__ = subsection
@@ -62,7 +79,7 @@ class GedFileHandler:
 
                 self.__current_document__[event_type]['date_info']['date'] = date.fromisoformat(line_decomposed[4]
                                                                                                 + '-' +
-                                                                                                month_lut.get(
+                                                                                                self.__month_lut__.get(
                                                                                                     line_decomposed[3])
                                                                                                 + '-' +
                                                                                                 (line_decomposed[2] if
@@ -82,7 +99,7 @@ class GedFileHandler:
             elif len(line_decomposed) == 4:  # month + year
                 self.__current_document__[event_type]['date_info']['date'] = date.fromisoformat(line_decomposed[3]
                                                                                                 + '-' +
-                                                                                                month_lut[
+                                                                                                self.__month_lut__[
                                                                                                     line_decomposed[2]]
                                                                                                 + '-01')
                 self.__current_document__[event_type]['date_info']['date_type'] = 'year_month_only'
@@ -144,13 +161,11 @@ class GedFileHandler:
                         elif decomposed_line[1] == 'DEAT':
                             self.__handle_active_subsection__('death')
 
-                        elif decomposed_line[1] == 'FAMS' and self.__current_document__['node_type'] == 'person':
-                            self.__handle_active_subsection__('fams')
-                            self.__current_document__['fams'].append(decomposed_line[2])
+                        elif decomposed_line[1] in self.__links_lut__:
+                            self.__handle_links__(self.__links_lut__[decomposed_line[1]], decomposed_line[2])
 
-                        elif decomposed_line[1] == 'FAMC' and self.__current_document__['node_type'] == 'person':
-                            self.__handle_active_subsection__('famc')
-                            self.__current_document__['famc'].append(decomposed_line[2])
+                        elif decomposed_line[1] == 'MARR':
+                            self.__handle_active_subsection__('marriage')
 
                     if self.__subsection__ == 'birth' and decomposed_line[0] == '2':
                         self.__handle_date_place__('birth', decomposed_line, line)
@@ -161,6 +176,9 @@ class GedFileHandler:
                     if self.__subsection__ == 'note' and decomposed_line[0] == '2' and decomposed_line[1] == 'CONT':
                         self.__current_document__['note'] = self.__current_document__['note'] \
                                                             + ' ' + line.replace('2 CONT ', '')
+
+                    if self.__subsection__ == 'marriage' and decomposed_line[0] == '2':
+                        self.__handle_date_place__('marriage', decomposed_line, line)
 
                 print(decomposed_line)
 
