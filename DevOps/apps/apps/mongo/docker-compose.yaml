@@ -1,7 +1,7 @@
 version: '3.7'
 
 volumes:
-  mongodata:
+  mongogeddata:
 
 services:
 
@@ -13,7 +13,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: root
 
     volumes:
-      - mongodata:/data/db
+      - mongogeddata:/data/db
       - $PWD/mongo_ged.js:/mongo_ged.js:ro
       - $PWD/init_mongo.sh:/docker-entrypoint-initdb.d/init_mongo.sh
 
