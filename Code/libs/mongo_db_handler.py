@@ -28,7 +28,6 @@ class MongoDbGed:
                 mongo_adapted_ged_list_object[index]['death']['date_info']['date'] =\
                     datetime.datetime.combine(ged_object['death']['date_info']['date'], datetime.time.min)
 
-        mongo_adapted_ged_list_object = list(filter(lambda x: 'ged_id' in x, mongo_adapted_ged_list_object))
         return mongo_adapted_ged_list_object
 
     def insert_list_of_ged_objets(self, ged_handler: GedFileHandler, collection_name: str):

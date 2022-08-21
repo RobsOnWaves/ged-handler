@@ -30,6 +30,22 @@ class GedFileHandler:
         'FAMC': 'famc'
     }
 
+    __sections_lut__ = {
+        'HEAD': 'head',
+        'SOUR': 'source',
+        'VERS': 'version',
+        'NAME': 'name',
+        'CORP': 'corporation',
+        'SUBM': 'submission_id',
+        'GEDC': 'gedc',
+        'FORM': 'form',
+        'CHAR': 'char',
+        'MARR': 'marriage',
+        'BIRT': 'birth',
+        'DEAT': 'death',
+        'NOTE': 'note'
+    }
+
     def __init__(self, file: Path):
         self.file = file
         self.__current_document__ = {}
@@ -58,12 +74,13 @@ class GedFileHandler:
                     elif decomposed_line[2] == 'FAM':
                         self.__current_document__ = {'node_type': 'family', 'ged_id': decomposed_line[1]}
                     elif decomposed_line[2] == 'SUBM':
-                        self.__current_document__ = {'node_type': 'subm'}
+                        self.__current_document__ = {'node_type': 'subm', 'ged_id': decomposed_line[1]}
 
                 except Exception as e:
                     print('error in parsing levels 0:' + str(e))
 
-            self.listed_documents.append(self.__previous_document__)
+            if self.__current_document__['node_type'] != 'head':
+                self.listed_documents.append(self.__previous_document__)
             return 'new section'
 
         return 'in section'
@@ -164,33 +181,46 @@ class GedFileHandler:
                             self.__current_document__['sex'] = 'female' if decomposed_line[2] == 'F' else 'male'
 
                         elif decomposed_line[1] == 'NOTE':
-                            self.__handle_active_subsection__('note')
-                            self.__current_document__['note'] = line.replace('1 NOTE ', '')
+                            self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
+                            self.__current_document__[self.__sections_lut__[decomposed_line[1]]] =\
+                                line.replace('1' + decomposed_line[1], '')
 
-                        elif decomposed_line[1] == 'BIRT':
-                            self.__handle_active_subsection__('birth')
+                        elif decomposed_line[1] in ['SOUR']:
+                            self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
+                            self.__current_document__[self.__sections_lut__[decomposed_line[1]]] = {
+                                'name': line.replace('1 ' + decomposed_line[1], '')
+                            }
 
-                        elif decomposed_line[1] == 'DEAT':
-                            self.__handle_active_subsection__('death')
+                        elif decomposed_line[1] in ['SUBM']:
+                            self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
+                            self.__current_document__[self.__sections_lut__[decomposed_line[1]]] \
+                                = line.replace('1 ' + decomposed_line[1], '')
 
                         elif decomposed_line[1] in self.__links_lut__:
                             self.__handle_links__(self.__links_lut__[decomposed_line[1]], decomposed_line[2])
 
-                        elif decomposed_line[1] == 'MARR':
-                            self.__handle_active_subsection__('marriage')
+                        elif decomposed_line[1] in ['GEDC']:
+                            if self.__sections_lut__[decomposed_line[1]] not in self.__current_document__:
+                                self.__current_document__[self.__sections_lut__[decomposed_line[1]]] = {}
 
-                    if self.__subsection__ == 'birth' and decomposed_line[0] == '2':
-                        self.__handle_date_place__('birth', decomposed_line, line)
+                            self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
 
-                    if self.__subsection__ == 'death' and decomposed_line[0] == '2':
-                        self.__handle_date_place__('death', decomposed_line, line)
+                        elif decomposed_line[1] in ['BIRT', 'DEAT', 'MARR']:
+                            self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
+
+                    if self.__subsection__ in ['birth', 'death', 'marriage'] and decomposed_line[0] == '2':
+                        self.__handle_date_place__(event_type=self.__subsection__,
+                                                   line_decomposed=decomposed_line,
+                                                   line_raw=line)
 
                     if self.__subsection__ == 'note' and decomposed_line[0] == '2' and decomposed_line[1] == 'CONT':
                         self.__current_document__['note'] = self.__current_document__['note'] \
                                                             + ' ' + line.replace('2 CONT ', '')
 
-                    if self.__subsection__ == 'marriage' and decomposed_line[0] == '2':
-                        self.__handle_date_place__('marriage', decomposed_line, line)
+                    if self.__subsection__ in ['source', 'gedc'] and decomposed_line[0] == '2'\
+                            and decomposed_line[1] in ['VERS', 'NAME', 'CORP', 'FORM']:
+                        self.__current_document__[self.__subsection__][self.__sections_lut__[decomposed_line[1]]] =\
+                            decomposed_line[2]
 
                 print(decomposed_line)
 
