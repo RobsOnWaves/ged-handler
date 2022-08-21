@@ -10,3 +10,10 @@ if __name__ == '__main__':
     ged_handler = GedFileHandler(Path('./data_in/ged_in.ged'))
 
     mongo_handler.insert_list_of_ged_objets(ged_handler, collection_name='benichman')
+
+    person = GedFileHandler.Person
+
+    person.family_name = 'family_name1'
+    person.given_names = ['given_1', 'given_2']
+
+    ged_handler.add_person(person)

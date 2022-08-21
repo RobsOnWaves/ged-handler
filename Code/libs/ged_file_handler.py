@@ -46,6 +46,20 @@ class GedFileHandler:
         'NOTE': 'note'
     }
 
+    class Person:
+        node_type: 'person'
+        ged_id: str
+        given_names: [str]
+        family_name: str
+        sex: str
+        birth_place: str
+        birth_date: date
+        death_place: str
+        death_date: date
+        note: str
+        fams: [str]
+        famc: [str]
+
     def __init__(self, file: Path):
         self.file = file
         self.__current_document__ = {}
@@ -228,3 +242,7 @@ class GedFileHandler:
 
                 if status_file != 'end of file':
                     previous_line_level = [decomposed_line[0], decomposed_line[1]]
+
+    def add_person(self, person: Person):
+        print(str(person))
+
