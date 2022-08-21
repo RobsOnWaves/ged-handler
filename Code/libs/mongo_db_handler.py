@@ -30,6 +30,22 @@ class MongoDbGed:
 
         return mongo_adapted_ged_list_object
 
+    @staticmethod
+    def from_mongodb_dict_to_ged_dict(raw_mongo_list: [dict]):
+
+        for index, ged_object in enumerate(raw_mongo_list):
+            if 'marriage' in ged_object:
+                raw_mongo_list[index]['marriage']['date_info']['date'] =\
+                    ged_object['marriage']['date_info']['date'].date()
+            if 'birth' in ged_object:
+                raw_mongo_list[index]['birth']['date_info']['date'] =\
+                    ged_object['birth']['date_info']['date'].date()
+            if 'death' in ged_object:
+                raw_mongo_list[index]['death']['date_info']['date'] =\
+                    ged_object['death']['date_info']['date'].date()
+
+        return raw_mongo_list
+
     def insert_list_of_ged_objets(self, ged_handler: GedFileHandler, collection_name: str):
         db = self.__mongo_client__.GED
         collection_handler = getattr(db, collection_name)
@@ -55,4 +71,25 @@ class MongoDbGed:
             print("Exception in pushing ged documents in Mongo" + str(e))
             return {"ged_insert_status": "Exception in pushing ged documents in Mongo" + str(e)}
 
+    def from_mongo_to_ged_list_dict(self, collection_name: str):
+        ged_list_dict = []
+        db = self.__mongo_client__.GED
+        collection_handler = getattr(db, collection_name)
+        cursor = collection_handler.find({}, {'_id': False})
+
+        end_cursor = False
+
+        while not end_cursor:
+            try:
+                ged_list_dict.append(cursor.next())
+            except StopIteration:
+                print('end loop')
+                end_cursor = True
+            except Exception as e:
+                print(e)
+                end_cursor = True
+
+        self.from_mongodb_dict_to_ged_dict(ged_list_dict)
+
+        return ged_list_dict
 

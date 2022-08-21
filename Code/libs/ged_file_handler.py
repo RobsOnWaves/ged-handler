@@ -60,13 +60,12 @@ class GedFileHandler:
         fams: [str]
         famc: [str]
 
-    def __init__(self, file: Path):
-        self.file = file
+    def __init__(self):
+        self.file = Path
         self.__current_document__ = {}
         self.__subsection__ = str
         self.__previous_document__ = {}
         self.listed_documents = []
-        self.to_list_of_dict()
 
     def get_filename(self):
         return self.file.name
@@ -154,8 +153,9 @@ class GedFileHandler:
             except Exception as e:
                 print('Exception adding a place to the current entry:' + str(e))
 
-    def to_list_of_dict(self):
+    def from_file_to_list_of_dict(self, file: Path):
         first_line = False
+        self.file = file
         with open(self.file, 'r') as f:
             for line in f.read().split('\n'):
                 print(line)
@@ -246,3 +246,5 @@ class GedFileHandler:
     def add_person(self, person: Person):
         print(str(person))
 
+    def load_ged_listed_dict(self, ged_listed_dict: [dict]):
+        self.listed_documents = ged_listed_dict
