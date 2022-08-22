@@ -155,6 +155,26 @@ class GedFileHandler:
             except Exception as e:
                 print('Exception adding a place to the current entry:' + str(e))
 
+    def __get_unique_ged_id__(self, node_type: str):
+        existing_keys = []
+        key = str(random.randint(1, 99999999))
+        for node in self.listed_documents:
+            try:
+                if node['node_type'] == node_type:
+                    existing_keys.append(node['ged_id'].replace('@', '').replace('I', '').replace('F', ''))
+
+            except Exception as e:
+                print('Exception in listing ged ids, ' + str(e))
+
+        while key in existing_keys:
+            key = str(random.randint(1, 99999999))
+
+        if node_type == 'family':
+            return '@F' + key + '@'
+
+        if node_type == 'person':
+            return '@I' + key + '@'
+
     def from_file_to_list_of_dict(self, file: Path):
         first_line = False
         self.file = file
@@ -238,10 +258,6 @@ class GedFileHandler:
                         self.__current_document__[self.__subsection__][self.__sections_lut__[decomposed_line[1]]] =\
                             decomposed_line[2]
 
-                print(decomposed_line)
-
-                print(self.__current_document__)
-
                 if status_file != 'end of file':
                     previous_line_level = [decomposed_line[0], decomposed_line[1]]
 
@@ -249,8 +265,8 @@ class GedFileHandler:
         persons_documents = []
         for person in persons:
             person_document = {
-                'node-type': 'person',
-                'ged_id': '@I' + str(random.randint(1, 99999999)) + '@',
+                'node_type': 'person',
+                'ged_id': self.__get_unique_ged_id__('person'),
                 'name': {'given_names': person.given_names, 'family_name': person.family_name},
                 'sex': person.sex,
                 'birth': {'date_info': {'date': person.birth_date, 'date_type': person.date_type_birth}},
