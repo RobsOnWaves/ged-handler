@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import date
+import random
 
 
 class GedFileHandler:
@@ -47,18 +48,19 @@ class GedFileHandler:
     }
 
     class Person:
-        node_type: 'person'
         ged_id: str
-        given_names: [str]
-        family_name: str
-        sex: str
-        birth_place: str
-        birth_date: date
-        death_place: str
-        death_date: date
-        note: str
-        fams: [str]
-        famc: [str]
+        given_names: [str] = ['not defined']
+        family_name: str = 'not defined'
+        sex: str = 'not defined'
+        birth_place: str = ['not defined']
+        birth_date: date = None
+        death_place: str = 'not defined'
+        death_date: date = None
+        date_type_birth: str = 'not defined'
+        date_type_death: str = 'not defined'
+        note: str = 'not defined'
+        fams: [str] = ['not defined']
+        famc: [str] = ['not defined']
 
     def __init__(self):
         self.file = Path
@@ -197,7 +199,7 @@ class GedFileHandler:
                         elif decomposed_line[1] == 'NOTE':
                             self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
                             self.__current_document__[self.__sections_lut__[decomposed_line[1]]] =\
-                                line.replace('1' + decomposed_line[1], '')
+                                line.replace('1 ' + decomposed_line[1] + ' ', '')
 
                         elif decomposed_line[1] in ['SOUR']:
                             self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
@@ -243,8 +245,25 @@ class GedFileHandler:
                 if status_file != 'end of file':
                     previous_line_level = [decomposed_line[0], decomposed_line[1]]
 
-    def add_person(self, person: Person):
-        print(str(person))
+    def add_persons(self, persons: [Person]):
+        persons_documents = []
+        for person in persons:
+            person_document = {
+                'node-type': 'person',
+                'ged_id': '@I' + str(random.randint(1, 99999999)) + '@',
+                'name': {'given_names': person.given_names, 'family_name': person.family_name},
+                'sex': person.sex,
+                'birth': {'date_info': {'date': person.birth_date, 'date_type': person.date_type_birth}},
+                'death': {'date_info': {'date': person.death_date, 'date_type': person.date_type_death}},
+                'note': person.note,
+                'fams': person.fams,
+                'famc': person.famc
+            }
+
+            self.listed_documents.append(person_document)
+            persons_documents.append(person_document)
+
+        return persons_documents
 
     def load_ged_listed_dict(self, ged_listed_dict: [dict]):
         self.listed_documents = ged_listed_dict
