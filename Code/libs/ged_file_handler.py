@@ -188,7 +188,6 @@ class GedFileHandler:
         self.file = file
         with open(self.file, 'r') as f:
             for line in f.read().split('\n'):
-                print(line)
                 decomposed_line = line.split(' ')
                 if len(decomposed_line) in [0, 1]:
                     continue

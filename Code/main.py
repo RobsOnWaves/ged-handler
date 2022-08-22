@@ -13,23 +13,23 @@ if __name__ == '__main__':
 
     mongo_handler.insert_list_of_ged_objets(collection_name='coll_name', ged_handler=ged_handler)
 
-    person1 = GedFileHandler.Person
+    person1 = GedFileHandler.Person()
 
     person1.family_name = 'family_name1'
     person1.given_names = ['given_1', 'given_2']
 
-    person2 = GedFileHandler.Person
+    person2 = GedFileHandler.Person()
 
     person2.family_name = 'family_name2'
     person2.given_names = ['given_1', 'given_2']
 
-    family1 = GedFileHandler.Family
+    family1 = GedFileHandler.Family()
 
     family1.husband = ['123456']
     family1.wife = ['1213313']
     family1.children = ['12311414', '1232444']
 
-    family2 = GedFileHandler.Family
+    family2 = GedFileHandler.Family()
 
     family2.husband = ['012345644']
     family2.wife = ['0121331344']
