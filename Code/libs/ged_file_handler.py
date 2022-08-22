@@ -62,6 +62,14 @@ class GedFileHandler:
         fams: [str] = ['not defined']
         famc: [str] = ['not defined']
 
+    class Family:
+        ged_id: str
+        husband: [str] = ['not defined']
+        wife: [str] = ['not defined']
+        children: [str] = ['not defined']
+        marriage_date: date = None
+        date_type_marriage: str = 'not defined'
+
     def __init__(self):
         self.file = Path
         self.__current_document__ = {}
@@ -280,6 +288,23 @@ class GedFileHandler:
             persons_documents.append(person_document)
 
         return persons_documents
+
+    def add_families(self, families: [Family]):
+        families_documents = []
+        for family in families:
+            family_document = {
+                'node_type': 'family',
+                'ged_id': self.__get_unique_ged_id__('family'),
+                'husband': family.husband,
+                'wife': family.wife,
+                'children': family.children,
+                'marriage': {'date_info': {'date': family.marriage_date, 'date_type': family.date_type_marriage}}
+            }
+
+            self.listed_documents.append(family_document)
+            families_documents.append(family_document)
+
+        return families_documents
 
     def load_ged_listed_dict(self, ged_listed_dict: [dict]):
         self.listed_documents = ged_listed_dict
