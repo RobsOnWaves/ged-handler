@@ -23,6 +23,18 @@ if __name__ == '__main__':
     person2.family_name = 'family_name2'
     person2.given_names = ['given_1', 'given_2']
 
+    family1 = GedFileHandler.Family
+
+    family1.husband = ['123456']
+    family1.wife = ['1213313']
+    family1.children = ['12311414', '1232444']
+
+    family2 = GedFileHandler.Family
+
+    family2.husband = ['012345644']
+    family2.wife = ['0121331344']
+    family2.children = ['01231141444', '0123244433']
+
     ged_listed_dict = mongo_handler.from_mongo_to_ged_list_dict('coll_name')
 
     ged_handler_to_modify = GedFileHandler()
@@ -31,6 +43,12 @@ if __name__ == '__main__':
 
     persons_documents = ged_handler_to_modify.add_persons([person1, person2])
 
+    families_documents = ged_handler_to_modify.add_families([family2, family1])
+
     mongo_handler.insert_list_of_ged_objets(collection_name='coll_name', ged_list_of_dict=[persons_documents[0]])
 
     mongo_handler.insert_list_of_ged_objets(collection_name='coll_name', ged_list_of_dict=[persons_documents[1]])
+
+    mongo_handler.insert_list_of_ged_objets(collection_name='coll_name', ged_list_of_dict=[families_documents[0]])
+
+    mongo_handler.insert_list_of_ged_objets(collection_name='coll_name', ged_list_of_dict=[families_documents[1]])
