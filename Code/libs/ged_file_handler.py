@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import date
+import random
 
 
 class GedFileHandler:
@@ -46,13 +47,35 @@ class GedFileHandler:
         'NOTE': 'note'
     }
 
-    def __init__(self, file: Path):
-        self.file = file
+    class Person:
+        ged_id: str
+        given_names: [str] = ['not defined']
+        family_name: str = 'not defined'
+        sex: str = 'not defined'
+        birth_place: str = ['not defined']
+        birth_date: date = None
+        death_place: str = 'not defined'
+        death_date: date = None
+        date_type_birth: str = 'not defined'
+        date_type_death: str = 'not defined'
+        note: str = 'not defined'
+        fams: [str] = ['not defined']
+        famc: [str] = ['not defined']
+
+    class Family:
+        ged_id: str
+        husband: [str] = ['not defined']
+        wife: [str] = ['not defined']
+        children: [str] = ['not defined']
+        marriage_date: date = None
+        date_type_marriage: str = 'not defined'
+
+    def __init__(self):
+        self.file = Path
         self.__current_document__ = {}
         self.__subsection__ = str
         self.__previous_document__ = {}
         self.listed_documents = []
-        self.to_list_of_dict()
 
     def get_filename(self):
         return self.file.name
@@ -140,11 +163,31 @@ class GedFileHandler:
             except Exception as e:
                 print('Exception adding a place to the current entry:' + str(e))
 
-    def to_list_of_dict(self):
+    def __get_unique_ged_id__(self, node_type: str):
+        existing_keys = []
+        key = str(random.randint(1, 99999999))
+        for node in self.listed_documents:
+            try:
+                if node['node_type'] == node_type:
+                    existing_keys.append(node['ged_id'].replace('@', '').replace('I', '').replace('F', ''))
+
+            except Exception as e:
+                print('Exception in listing ged ids, ' + str(e))
+
+        while key in existing_keys:
+            key = str(random.randint(1, 99999999))
+
+        if node_type == 'family':
+            return '@F' + key + '@'
+
+        if node_type == 'person':
+            return '@I' + key + '@'
+
+    def from_file_to_list_of_dict(self, file: Path):
         first_line = False
+        self.file = file
         with open(self.file, 'r') as f:
             for line in f.read().split('\n'):
-                print(line)
                 decomposed_line = line.split(' ')
                 if len(decomposed_line) in [0, 1]:
                     continue
@@ -183,7 +226,7 @@ class GedFileHandler:
                         elif decomposed_line[1] == 'NOTE':
                             self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
                             self.__current_document__[self.__sections_lut__[decomposed_line[1]]] =\
-                                line.replace('1' + decomposed_line[1], '')
+                                line.replace('1 ' + decomposed_line[1] + ' ', '')
 
                         elif decomposed_line[1] in ['SOUR']:
                             self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
@@ -222,9 +265,45 @@ class GedFileHandler:
                         self.__current_document__[self.__subsection__][self.__sections_lut__[decomposed_line[1]]] =\
                             decomposed_line[2]
 
-                print(decomposed_line)
-
-                print(self.__current_document__)
-
                 if status_file != 'end of file':
                     previous_line_level = [decomposed_line[0], decomposed_line[1]]
+
+    def add_persons(self, persons: [Person]):
+        persons_documents = []
+        for person in persons:
+            person_document = {
+                'node_type': 'person',
+                'ged_id': self.__get_unique_ged_id__('person'),
+                'name': {'given_names': person.given_names, 'family_name': person.family_name},
+                'sex': person.sex,
+                'birth': {'date_info': {'date': person.birth_date, 'date_type': person.date_type_birth}},
+                'death': {'date_info': {'date': person.death_date, 'date_type': person.date_type_death}},
+                'note': person.note,
+                'fams': person.fams,
+                'famc': person.famc
+            }
+
+            self.listed_documents.append(person_document)
+            persons_documents.append(person_document)
+
+        return persons_documents
+
+    def add_families(self, families: [Family]):
+        families_documents = []
+        for family in families:
+            family_document = {
+                'node_type': 'family',
+                'ged_id': self.__get_unique_ged_id__('family'),
+                'husband': family.husband,
+                'wife': family.wife,
+                'children': family.children,
+                'marriage': {'date_info': {'date': family.marriage_date, 'date_type': family.date_type_marriage}}
+            }
+
+            self.listed_documents.append(family_document)
+            families_documents.append(family_document)
+
+        return families_documents
+
+    def load_ged_listed_dict(self, ged_listed_dict: [dict]):
+        self.listed_documents = ged_listed_dict
