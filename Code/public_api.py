@@ -5,12 +5,10 @@ from typing import Union
 from enum import Enum
 from fastapi import Depends, FastAPI, HTTPException, status, Form
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-# from jose import JWTError, jwt
-import jwt
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
-from libs.mongo_db_handler import get_users
-
+from libs.mongo_db_handler import MongoDbGed
 from emoji import emojize
 
 
@@ -86,14 +84,17 @@ def time_window_control(date_start: datetime, date_end: datetime, current_user: 
 
 def el_parametrizor(mode_debug=False):
     if mode_debug:
-        os.environ['URL_MONGO_SUBS'] = "localhost:27018"
+        os.environ['URL_MONGO'] = "localhost:27017"
 
-        os.environ['USR_MONGO_SUBS'] = "root"
+        os.environ['USR_MONGO'] = "root"
 
-        os.environ['PWD_MONGO_SUBS'] = "rootmongopwd"
+        os.environ['PWD_MONGO'] = "rootmongopwd"
 
 
-el_parametrizor(False)
+el_parametrizor(True)
+
+mongo_handler = MongoDbGed(address=os.environ['URL_MONGO'], user=os.environ['USR_MONGO'],
+                           password=os.environ['PWD_MONGO'])
 
 
 def verify_password(plain_password, hashed_password):
@@ -144,7 +145,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = get_user(get_users(), username=token_data.username)
+    user = get_user(mongo_handler.get_users(), username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
@@ -158,7 +159,7 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(get_users(), form_data.username, form_data.password)
+    user = authenticate_user(mongo_handler.get_users(), form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -186,9 +187,10 @@ async def create_user(user_name: str = Form(),
                       role: Roles = Form(),
                       current_user: User = Depends(get_current_active_user)):
     if current_user.role == "admin":
-        return insert_user(user_name, full_name, email, get_password_hash(password), current_user.username, role)
+        return mongo_handler.insert_user(user_name, full_name, email, get_password_hash(password),
+                                         current_user.username, role)
     else:
-        return emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"
+        return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
 
 
 if __name__ == "__main__":
