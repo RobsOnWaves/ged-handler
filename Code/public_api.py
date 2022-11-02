@@ -3,12 +3,13 @@ import os
 from datetime import datetime, timedelta, date
 from typing import Union
 from enum import Enum
-from fastapi import Depends, FastAPI, HTTPException, status, Form
+from fastapi import Depends, FastAPI, HTTPException, status, Form, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from libs.mongo_db_handler import MongoDbGed
+from libs.ged_file_handler import GedFileHandler
 from emoji import emojize
 
 
@@ -192,6 +193,21 @@ async def create_user(user_name: str = Form(),
     else:
         return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
 
+
+@app.post("/ged_file")
+async def upload_ged_file(file: UploadFile,
+                      ged_import_name: str = Form(description="import name: must not exist already"),
+                      current_user: User = Depends(get_current_active_user)):
+    if current_user.role == "admin":
+        ged_handler = GedFileHandler()
+        contents = file.file.read()
+        with open(file.filename, 'wb') as f:
+            f.write(contents)
+        ged_handler.from_file_to_list_of_dict(file=file.filename)
+        return mongo_handler.insert_list_of_ged_objets(collection_name=ged_import_name, ged_handler=ged_handler)
+
+    else:
+        return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
