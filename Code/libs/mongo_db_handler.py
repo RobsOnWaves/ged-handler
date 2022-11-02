@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 from libs.ged_file_handler import GedFileHandler
 import datetime
+
 import copy
 from emoji import emojize
 
@@ -17,6 +18,7 @@ class MongoDbGed:
         self.__connection_string__ = "mongodb://" + user + ":" + password + "@" + address
         self.__mongo_client__ = MongoClient(self.__connection_string__)
 
+
     @staticmethod
     def from_ged_dict_to_mongodb_dict(ged_handler: GedFileHandler = GedFileHandler(),
                                       ged_list_of_dict=None):
@@ -29,6 +31,7 @@ class MongoDbGed:
 
         elif ged_list_of_dict:
             mongo_adapted_ged_list_object = ged_list_of_dict
+
 
         for index, ged_object in enumerate(mongo_adapted_ged_list_object):
             if 'marriage' in ged_object:
@@ -73,6 +76,7 @@ class MongoDbGed:
             ged_list_of_dict = []
         db = self.__mongo_client__.GED
         collection_handler = getattr(db, collection_name)
+
         if ged_handler.listed_documents:
             ged_list_of_dict = self.from_ged_dict_to_mongodb_dict(ged_handler)
         try:
@@ -95,6 +99,7 @@ class MongoDbGed:
         except Exception as e:
             print("Exception in pushing ged documents in Mongo" + str(e))
             return {"ged_insert_status": "Exception in pushing ged documents in Mongo" + str(e)}
+
 
     def from_mongo_to_ged_list_dict(self, collection_name: str):
         ged_list_dict = []
@@ -182,4 +187,3 @@ class MongoDbGed:
                     + "' created" + emojize(":kiss:", language='alias') }
 
         return ok_string if status.acknowledged else self.nok_string
-
