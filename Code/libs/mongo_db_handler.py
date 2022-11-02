@@ -2,7 +2,14 @@ from pymongo import MongoClient
 from libs.ged_file_handler import GedFileHandler
 import datetime
 
+import copy
+from emoji import emojize
+
+
 class MongoDbGed:
+    nok_string = {'response' : "   " + emojize(":no_entry:" + ":musical_note:",
+                                 language='alias') + "something went wrong for Fay Wray and King Kong" \
+                 + emojize(":musical_note:" + ":lips:", language='alias') }
 
     def __init__(self, address: str, user: str, password: str):
         self.__address__ = address
@@ -11,32 +18,172 @@ class MongoDbGed:
         self.__connection_string__ = "mongodb://" + user + ":" + password + "@" + address
         self.__mongo_client__ = MongoClient(self.__connection_string__)
 
-    def from_ged_dict_to_mongodb_dict(self, ged_handler: GedFileHandler):
-        mongo_adapted_ged_list_object = ged_handler.listed_documents
+
+    @staticmethod
+    def from_ged_dict_to_mongodb_dict(ged_handler: GedFileHandler = GedFileHandler(),
+                                      ged_list_of_dict=None):
+
+        if ged_list_of_dict is None:
+            ged_list_of_dict = []
+
+        if ged_handler.listed_documents:
+            mongo_adapted_ged_list_object = copy.deepcopy(ged_handler.listed_documents)
+
+        elif ged_list_of_dict:
+            mongo_adapted_ged_list_object = ged_list_of_dict
+
+
         for index, ged_object in enumerate(mongo_adapted_ged_list_object):
             if 'marriage' in ged_object:
-                mongo_adapted_ged_list_object[index]['marriage']['date_info']['date'] =\
-                    datetime.datetime.combine(ged_object['marriage']['date_info']['date'], datetime.time.min)
+                if mongo_adapted_ged_list_object[index]['marriage']['date_info']['date'] is not None:
+                    mongo_adapted_ged_list_object[index]['marriage']['date_info']['date'] = \
+                        datetime.datetime.combine(ged_object['marriage']['date_info']['date'], datetime.time.min)
             if 'birth' in ged_object:
-                mongo_adapted_ged_list_object[index]['birth']['date_info']['date'] =\
-                    datetime.datetime.combine(ged_object['birth']['date_info']['date'], datetime.time.min)
+                if mongo_adapted_ged_list_object[index]['birth']['date_info']['date'] is not None:
+                    mongo_adapted_ged_list_object[index]['birth']['date_info']['date'] = \
+                        datetime.datetime.combine(ged_object['birth']['date_info']['date'], datetime.time.min)
             if 'death' in ged_object:
-                mongo_adapted_ged_list_object[index]['death']['date_info']['date'] =\
-                    datetime.datetime.combine(ged_object['death']['date_info']['date'], datetime.time.min)
+                if mongo_adapted_ged_list_object[index]['death']['date_info']['date'] is not None:
+                    mongo_adapted_ged_list_object[index]['death']['date_info']['date'] = \
+                        datetime.datetime.combine(ged_object['death']['date_info']['date'], datetime.time.min)
 
         return mongo_adapted_ged_list_object
 
-    def insert_list_of_ged_objets(self, ged_handler: GedFileHandler, collection_name: str):
+    @staticmethod
+    def from_mongodb_dict_to_ged_dict(raw_mongo_list: [dict]):
+
+        for index, ged_object in enumerate(raw_mongo_list):
+            if 'marriage' in ged_object:
+                if raw_mongo_list[index]['marriage']['date_info']['date'] is not None:
+                    raw_mongo_list[index]['marriage']['date_info']['date'] = \
+                        ged_object['marriage']['date_info']['date'].date()
+            if 'birth' in ged_object:
+                if raw_mongo_list[index]['birth']['date_info']['date'] is not None:
+                    raw_mongo_list[index]['birth']['date_info']['date'] = \
+                        ged_object['birth']['date_info']['date'].date()
+            if 'death' in ged_object:
+                if raw_mongo_list[index]['death']['date_info']['date'] is not None:
+                    raw_mongo_list[index]['death']['date_info']['date'] = \
+                        ged_object['death']['date_info']['date'].date()
+
+        return raw_mongo_list
+
+    def insert_list_of_ged_objets(self,
+                                  collection_name: str,
+                                  ged_list_of_dict=None,
+                                  ged_handler: GedFileHandler = GedFileHandler()):
+        if ged_list_of_dict is None:
+            ged_list_of_dict = []
         db = self.__mongo_client__.GED
         collection_handler = getattr(db, collection_name)
-        ged_objects = self.from_ged_dict_to_mongodb_dict(ged_handler)
-        cursor = collection_handler.insert_many(ged_objects)
 
-        if cursor.acknowledged is True:
-            return {"ged_insert_status": "Insertions with success"}
+        if ged_handler.listed_documents:
+            ged_list_of_dict = self.from_ged_dict_to_mongodb_dict(ged_handler)
+        try:
+            collection_handler.create_index('ged_id', unique=True)
+        except Exception as e:
+            print("Exception in creating Mongo index" + str(e))
 
-        elif cursor.acknowledged is not True:
-            return {"ged_insert_status": "Insertions_not_ended_mongoDB did not acknowledged"}
+        try:
+            cursor = collection_handler.insert_many(ged_list_of_dict)
 
-        elif cursor.matched_count == 0:
-            return {"ged_insert_status": "Insertionsn_not_ended_mongoDB no document matched"}
+            if cursor.acknowledged is True:
+                return {"ged_insert_status": "Insertions with success"}
+
+            elif cursor.acknowledged is not True:
+                return {"ged_insert_status": "Insertions_not_ended_mongoDB did not acknowledged"}
+
+            elif cursor.matched_count == 0:
+                return {"ged_insert_status": "Insertions_not_ended_mongoDB no document matched"}
+
+        except Exception as e:
+            print("Exception in pushing ged documents in Mongo" + str(e))
+            return {"ged_insert_status": "Exception in pushing ged documents in Mongo" + str(e)}
+
+
+    def from_mongo_to_ged_list_dict(self, collection_name: str):
+        ged_list_dict = []
+        db = self.__mongo_client__.GED
+        collection_handler = getattr(db, collection_name)
+        cursor = collection_handler.find({}, {'_id': False})
+
+        end_cursor = False
+
+        while not end_cursor:
+            try:
+                ged_list_dict.append(cursor.next())
+            except StopIteration:
+                print('end loop')
+                end_cursor = True
+            except Exception as e:
+                print(e)
+                end_cursor = True
+
+        self.from_mongodb_dict_to_ged_dict(ged_list_dict)
+
+        return ged_list_dict
+
+    def get_users(self):
+
+        users = {}
+        # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
+
+        db = self.__mongo_client__.GED
+
+        try:
+            cursor = db.users.find()
+            end_cursor = False
+            while not end_cursor:
+                try:
+                    users.update(cursor.next())
+                except StopIteration:
+                    print('end loop')
+                    end_cursor = True
+                except Exception as e:
+                    print(e)
+                    end_cursor = True
+
+        except Exception as e:
+            return "MongoDB error Exception: " + str(e)
+
+        return users
+
+    def insert_user(self,
+                    user_name,
+                    full_name,
+                    email,
+                    hashed_password,
+                    creator,
+                    role
+                    ):
+
+        db = self.__mongo_client__.GED
+
+        query = {
+            "user_name": user_name,
+            user_name:
+                {
+                    "username": user_name,
+                    "full_name": full_name,
+                    "email": email,
+                    "hashed_password": hashed_password,
+                    "disabled": False,
+                    "created_at": datetime.datetime.utcnow(),
+                    "created_by": creator,
+                    "role": role
+                }
+        }
+
+        try:
+            status = db.users.insert_one(query)
+
+        except errors.DuplicateKeyError as e:
+            return {'response' : "user already exists" + self.nok_string }
+
+        except Exception as e:
+            return {'response' : "MongoDB error" + "Exception: " + str(e) + self.nok_string }
+
+        ok_string = {'response' : emojize(":ok_woman:", language='alias') + emojize(":+1:", language='alias') + "user '" + user_name \
+                    + "' created" + emojize(":kiss:", language='alias') }
+
+        return ok_string if status.acknowledged else self.nok_string

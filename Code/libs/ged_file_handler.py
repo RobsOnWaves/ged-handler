@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import date
+import random
 
 
 class GedFileHandler:
@@ -30,13 +31,51 @@ class GedFileHandler:
         'FAMC': 'famc'
     }
 
-    def __init__(self, file: Path):
-        self.file = file
+    __sections_lut__ = {
+        'HEAD': 'head',
+        'SOUR': 'source',
+        'VERS': 'version',
+        'NAME': 'name',
+        'CORP': 'corporation',
+        'SUBM': 'submission_id',
+        'GEDC': 'gedc',
+        'FORM': 'form',
+        'CHAR': 'char',
+        'MARR': 'marriage',
+        'BIRT': 'birth',
+        'DEAT': 'death',
+        'NOTE': 'note'
+    }
+
+    class Person:
+        ged_id: str
+        given_names: [str] = ['not defined']
+        family_name: str = 'not defined'
+        sex: str = 'not defined'
+        birth_place: str = ['not defined']
+        birth_date: date = None
+        death_place: str = 'not defined'
+        death_date: date = None
+        date_type_birth: str = 'not defined'
+        date_type_death: str = 'not defined'
+        note: str = 'not defined'
+        fams: [str] = ['not defined']
+        famc: [str] = ['not defined']
+
+    class Family:
+        ged_id: str
+        husband: [str] = ['not defined']
+        wife: [str] = ['not defined']
+        children: [str] = ['not defined']
+        marriage_date: date = None
+        date_type_marriage: str = 'not defined'
+
+    def __init__(self):
+        self.file = Path
         self.__current_document__ = {}
         self.__subsection__ = str
         self.__previous_document__ = {}
         self.listed_documents = []
-        self.to_list_of_dict()
 
     def get_filename(self):
         return self.file.name
@@ -58,12 +97,13 @@ class GedFileHandler:
                     elif decomposed_line[2] == 'FAM':
                         self.__current_document__ = {'node_type': 'family', 'ged_id': decomposed_line[1]}
                     elif decomposed_line[2] == 'SUBM':
-                        self.__current_document__ = {'node_type': 'subm'}
+                        self.__current_document__ = {'node_type': 'subm', 'ged_id': decomposed_line[1]}
 
                 except Exception as e:
                     print('error in parsing levels 0:' + str(e))
 
-            self.listed_documents.append(self.__previous_document__)
+            if self.__current_document__['node_type'] != 'head':
+                self.listed_documents.append(self.__previous_document__)
             return 'new section'
 
         return 'in section'
@@ -123,11 +163,31 @@ class GedFileHandler:
             except Exception as e:
                 print('Exception adding a place to the current entry:' + str(e))
 
-    def to_list_of_dict(self):
+    def __get_unique_ged_id__(self, node_type: str):
+        existing_keys = []
+        key = str(random.randint(1, 99999999))
+        for node in self.listed_documents:
+            try:
+                if node['node_type'] == node_type:
+                    existing_keys.append(node['ged_id'].replace('@', '').replace('I', '').replace('F', ''))
+
+            except Exception as e:
+                print('Exception in listing ged ids, ' + str(e))
+
+        while key in existing_keys:
+            key = str(random.randint(1, 99999999))
+
+        if node_type == 'family':
+            return '@F' + key + '@'
+
+        if node_type == 'person':
+            return '@I' + key + '@'
+
+    def from_file_to_list_of_dict(self, file: Path):
         first_line = False
+        self.file = file
         with open(self.file, 'r') as f:
             for line in f.read().split('\n'):
-                print(line)
                 decomposed_line = line.split(' ')
                 if len(decomposed_line) in [0, 1]:
                     continue
@@ -164,37 +224,86 @@ class GedFileHandler:
                             self.__current_document__['sex'] = 'female' if decomposed_line[2] == 'F' else 'male'
 
                         elif decomposed_line[1] == 'NOTE':
-                            self.__handle_active_subsection__('note')
-                            self.__current_document__['note'] = line.replace('1 NOTE ', '')
+                            self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
+                            self.__current_document__[self.__sections_lut__[decomposed_line[1]]] =\
+                                line.replace('1 ' + decomposed_line[1] + ' ', '')
 
-                        elif decomposed_line[1] == 'BIRT':
-                            self.__handle_active_subsection__('birth')
+                        elif decomposed_line[1] in ['SOUR']:
+                            self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
+                            self.__current_document__[self.__sections_lut__[decomposed_line[1]]] = {
+                                'name': line.replace('1 ' + decomposed_line[1], '')
+                            }
 
-                        elif decomposed_line[1] == 'DEAT':
-                            self.__handle_active_subsection__('death')
+                        elif decomposed_line[1] in ['SUBM']:
+                            self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
+                            self.__current_document__[self.__sections_lut__[decomposed_line[1]]] \
+                                = line.replace('1 ' + decomposed_line[1], '')
 
                         elif decomposed_line[1] in self.__links_lut__:
                             self.__handle_links__(self.__links_lut__[decomposed_line[1]], decomposed_line[2])
 
-                        elif decomposed_line[1] == 'MARR':
-                            self.__handle_active_subsection__('marriage')
+                        elif decomposed_line[1] in ['GEDC']:
+                            if self.__sections_lut__[decomposed_line[1]] not in self.__current_document__:
+                                self.__current_document__[self.__sections_lut__[decomposed_line[1]]] = {}
 
-                    if self.__subsection__ == 'birth' and decomposed_line[0] == '2':
-                        self.__handle_date_place__('birth', decomposed_line, line)
+                            self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
 
-                    if self.__subsection__ == 'death' and decomposed_line[0] == '2':
-                        self.__handle_date_place__('death', decomposed_line, line)
+                        elif decomposed_line[1] in ['BIRT', 'DEAT', 'MARR']:
+                            self.__handle_active_subsection__(self.__sections_lut__[decomposed_line[1]])
+
+                    if self.__subsection__ in ['birth', 'death', 'marriage'] and decomposed_line[0] == '2':
+                        self.__handle_date_place__(event_type=self.__subsection__,
+                                                   line_decomposed=decomposed_line,
+                                                   line_raw=line)
 
                     if self.__subsection__ == 'note' and decomposed_line[0] == '2' and decomposed_line[1] == 'CONT':
                         self.__current_document__['note'] = self.__current_document__['note'] \
                                                             + ' ' + line.replace('2 CONT ', '')
 
-                    if self.__subsection__ == 'marriage' and decomposed_line[0] == '2':
-                        self.__handle_date_place__('marriage', decomposed_line, line)
-
-                print(decomposed_line)
-
-                print(self.__current_document__)
+                    if self.__subsection__ in ['source', 'gedc'] and decomposed_line[0] == '2'\
+                            and decomposed_line[1] in ['VERS', 'NAME', 'CORP', 'FORM']:
+                        self.__current_document__[self.__subsection__][self.__sections_lut__[decomposed_line[1]]] =\
+                            decomposed_line[2]
 
                 if status_file != 'end of file':
                     previous_line_level = [decomposed_line[0], decomposed_line[1]]
+
+    def add_persons(self, persons: [Person]):
+        persons_documents = []
+        for person in persons:
+            person_document = {
+                'node_type': 'person',
+                'ged_id': self.__get_unique_ged_id__('person'),
+                'name': {'given_names': person.given_names, 'family_name': person.family_name},
+                'sex': person.sex,
+                'birth': {'date_info': {'date': person.birth_date, 'date_type': person.date_type_birth}},
+                'death': {'date_info': {'date': person.death_date, 'date_type': person.date_type_death}},
+                'note': person.note,
+                'fams': person.fams,
+                'famc': person.famc
+            }
+
+            self.listed_documents.append(person_document)
+            persons_documents.append(person_document)
+
+        return persons_documents
+
+    def add_families(self, families: [Family]):
+        families_documents = []
+        for family in families:
+            family_document = {
+                'node_type': 'family',
+                'ged_id': self.__get_unique_ged_id__('family'),
+                'husband': family.husband,
+                'wife': family.wife,
+                'children': family.children,
+                'marriage': {'date_info': {'date': family.marriage_date, 'date_type': family.date_type_marriage}}
+            }
+
+            self.listed_documents.append(family_document)
+            families_documents.append(family_document)
+
+        return families_documents
+
+    def load_ged_listed_dict(self, ged_listed_dict: [dict]):
+        self.listed_documents = ged_listed_dict
