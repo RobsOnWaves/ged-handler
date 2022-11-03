@@ -18,7 +18,6 @@ class MongoDbGed:
         self.__connection_string__ = "mongodb://" + user + ":" + password + "@" + address
         self.__mongo_client__ = MongoClient(self.__connection_string__)
 
-
     @staticmethod
     def from_ged_dict_to_mongodb_dict(ged_handler: GedFileHandler = GedFileHandler(),
                                       ged_list_of_dict=None):
@@ -32,20 +31,30 @@ class MongoDbGed:
         elif ged_list_of_dict:
             mongo_adapted_ged_list_object = ged_list_of_dict
 
-
         for index, ged_object in enumerate(mongo_adapted_ged_list_object):
             if 'marriage' in ged_object:
-                if mongo_adapted_ged_list_object[index]['marriage']['date_info']['date'] is not None:
-                    mongo_adapted_ged_list_object[index]['marriage']['date_info']['date'] = \
-                        datetime.datetime.combine(ged_object['marriage']['date_info']['date'], datetime.time.min)
+                try:
+                    if 'date_info' in mongo_adapted_ged_list_object[index]['marriage']:
+                        mongo_adapted_ged_list_object[index]['marriage']['date_info']['date'] = \
+                            datetime.datetime.combine(ged_object['marriage']['date_info']['date'], datetime.time.min)
+                except Exception as e:
+                    print('Exception in transforming ged dict to mongo object marriage:' + str(e))
+
             if 'birth' in ged_object:
-                if mongo_adapted_ged_list_object[index]['birth']['date_info']['date'] is not None:
-                    mongo_adapted_ged_list_object[index]['birth']['date_info']['date'] = \
-                        datetime.datetime.combine(ged_object['birth']['date_info']['date'], datetime.time.min)
+                try:
+                    if 'date_info' in mongo_adapted_ged_list_object[index]['birth']:
+                        mongo_adapted_ged_list_object[index]['birth']['date_info']['date'] = \
+                            datetime.datetime.combine(ged_object['birth']['date_info']['date'], datetime.time.min)
+                except Exception as e:
+                    print('Exception in transforming ged dict to mongo object birth:' + str(e))
+
             if 'death' in ged_object:
-                if mongo_adapted_ged_list_object[index]['death']['date_info']['date'] is not None:
-                    mongo_adapted_ged_list_object[index]['death']['date_info']['date'] = \
-                        datetime.datetime.combine(ged_object['death']['date_info']['date'], datetime.time.min)
+                try:
+                    if 'date_info' in mongo_adapted_ged_list_object[index]['death']:
+                        mongo_adapted_ged_list_object[index]['death']['date_info']['date'] = \
+                            datetime.datetime.combine(ged_object['death']['date_info']['date'], datetime.time.min)
+                except Exception as e:
+                    print('Exception in transforming ged dict to mongo object death:' + str(e))
 
         return mongo_adapted_ged_list_object
 
