@@ -119,9 +119,11 @@ class GedFileHandler:
         self.__subsection__ = subsection
 
     def __handle_date_place__(self, event_type: str, line_decomposed: [str], line_raw: str):
-        if line_decomposed[1] == 'DATE':
-            # Initiating the event
+        # Initiating the event
+        if event_type not in self.__current_document__:
             self.__current_document__[event_type] = {}
+
+        if line_decomposed[1] == 'DATE':
             self.__current_document__[event_type]['date_info'] = {}
 
             if len(line_decomposed) == 5:  # full date
@@ -161,7 +163,7 @@ class GedFileHandler:
                 self.__current_document__[event_type]['place'] = line_raw.replace('2 PLAC ', '')
 
             except Exception as e:
-                print('Exception adding a place to the current entry:' + str(e))
+                print('Exception adding a place to the current entry:' + str(e) + 'line:' + line_raw)
 
     def __get_unique_ged_id__(self, node_type: str):
         existing_keys = []
