@@ -63,17 +63,31 @@ class MongoDbGed:
 
         for index, ged_object in enumerate(raw_mongo_list):
             if 'marriage' in ged_object:
-                if raw_mongo_list[index]['marriage']['date_info']['date'] is not None:
-                    raw_mongo_list[index]['marriage']['date_info']['date'] = \
-                        ged_object['marriage']['date_info']['date'].date()
+                try:
+                    if 'date_info' in raw_mongo_list[index]['marriage']:
+                        raw_mongo_list[index]['marriage']['date_info']['date'] = \
+                            ged_object['marriage']['date_info']['date'].date()
+
+                except Exception as e:
+                    print('Exception in transforming mongo object to ged dict marriage:' + str(e))
+
             if 'birth' in ged_object:
-                if raw_mongo_list[index]['birth']['date_info']['date'] is not None:
-                    raw_mongo_list[index]['birth']['date_info']['date'] = \
-                        ged_object['birth']['date_info']['date'].date()
+                try:
+                    if 'date_info' in raw_mongo_list[index]['birth']:
+                        raw_mongo_list[index]['birth']['date_info']['date'] = \
+                            ged_object['birth']['date_info']['date'].date()
+
+                except Exception as e:
+                    print('Exception in transforming mongo object to ged dict birth:' + str(e))
+
             if 'death' in ged_object:
-                if raw_mongo_list[index]['death']['date_info']['date'] is not None:
-                    raw_mongo_list[index]['death']['date_info']['date'] = \
-                        ged_object['death']['date_info']['date'].date()
+                try:
+                    if 'date_info' in raw_mongo_list[index]['death']:
+                        raw_mongo_list[index]['death']['date_info']['date'] = \
+                            ged_object['death']['date_info']['date'].date()
+
+                except Exception as e:
+                    print('Exception in transforming mongo object to ged dict death:' + str(e))
 
         return raw_mongo_list
 
@@ -108,7 +122,6 @@ class MongoDbGed:
         except Exception as e:
             print("Exception in pushing ged documents in Mongo" + str(e))
             return {"ged_insert_status": "Exception in pushing ged documents in Mongo" + str(e)}
-
 
     def from_mongo_to_ged_list_dict(self, collection_name: str):
         ged_list_dict = []

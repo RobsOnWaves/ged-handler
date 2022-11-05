@@ -196,8 +196,8 @@ async def create_user(user_name: str = Form(),
 
 @app.post("/ged_file")
 async def upload_ged_file(file: UploadFile,
-                      ged_import_name: str = Form(description="import name: must not exist already"),
-                      current_user: User = Depends(get_current_active_user)):
+                          ged_import_name: str = Form(description="import name: must not exist already"),
+                          current_user: User = Depends(get_current_active_user)):
     if current_user.role == "admin":
         ged_handler = GedFileHandler()
         contents = file.file.read()
@@ -208,6 +208,17 @@ async def upload_ged_file(file: UploadFile,
 
     else:
         return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
+
+
+@app.get("/ged_collection_to_json")
+async def ged_collection_to_json(ged_collection_name: str,
+                                 current_user: User = Depends(get_current_active_user)):
+
+    if current_user.role in ['admin', 'user']:
+        return mongo_handler.from_mongo_to_ged_list_dict(collection_name=ged_collection_name)
+    else:
+        return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
