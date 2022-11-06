@@ -5,6 +5,7 @@ from typing import Union
 from enum import Enum
 from fastapi import Depends, FastAPI, HTTPException, status, Form, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.responses import FileResponse
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -210,12 +211,29 @@ async def upload_ged_file(file: UploadFile,
         return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
 
 
-@app.get("/ged_collection_to_json")
-async def ged_collection_to_json(ged_collection_name: str,
-                                 current_user: User = Depends(get_current_active_user)):
+@app.get("/ged_collection_to_json_answer")
+async def ged_collection_to_json_answer(ged_collection_name: str,
+                                        current_user: User = Depends(get_current_active_user)):
 
     if current_user.role in ['admin', 'user']:
         return mongo_handler.from_mongo_to_ged_list_dict(collection_name=ged_collection_name)
+    else:
+        return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
+
+
+@app.get("/ged_collection_to_json_file")
+async def ged_collection_to_json_answer(ged_collection_name: str,
+                                        current_user: User = Depends(get_current_active_user)):
+
+    if current_user.role in ['admin', 'user']:
+
+        with open(ged_collection_name + '.json', 'w') as convert_file:
+            ged_listed_dict = mongo_handler.from_mongo_to_ged_list_dict(collection_name=ged_collection_name)
+            jsoned_ged = mongo_handler.jsonize_ged_dict(ged_listed_dict)
+            convert_file.write(jsoned_ged)
+
+        return FileResponse(ged_collection_name + '.json')
+
     else:
         return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
 
