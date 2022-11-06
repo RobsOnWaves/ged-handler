@@ -1,3 +1,5 @@
+import json
+
 from pymongo import MongoClient
 from libs.ged_file_handler import GedFileHandler
 import datetime
@@ -209,3 +211,33 @@ class MongoDbGed:
                     + "' created" + emojize(":kiss:", language='alias') }
 
         return ok_string if status.acknowledged else self.nok_string
+
+    @staticmethod
+    def jsonize_ged_dict(ged_list_of_dict: dict):
+
+        for index, ged_object in enumerate(ged_list_of_dict):
+            if 'marriage' in ged_object:
+                try:
+                    if 'date_info' in ged_list_of_dict[index]['marriage']:
+                        ged_list_of_dict[index]['marriage']['date_info']['date'] = \
+                            str(ged_object['marriage']['date_info']['date'])
+                except Exception as e:
+                    print('Exception in transforming ged dict to mongo object marriage:' + str(e))
+
+            if 'birth' in ged_object:
+                try:
+                    if 'date_info' in ged_list_of_dict[index]['birth']:
+                        ged_list_of_dict[index]['birth']['date_info']['date'] = \
+                            str(ged_object['birth']['date_info']['date'])
+                except Exception as e:
+                    print('Exception in transforming ged dict to mongo object birth:' + str(e))
+
+            if 'death' in ged_object:
+                try:
+                    if 'date_info' in ged_list_of_dict[index]['death']:
+                        ged_list_of_dict[index]['death']['date_info']['date'] = \
+                            str(ged_object['death']['date_info']['date'])
+                except Exception as e:
+                    print('Exception in transforming ged dict to mongo object death:' + str(e))
+
+        return json.dumps(ged_list_of_dict)
