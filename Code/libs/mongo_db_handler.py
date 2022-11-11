@@ -147,7 +147,7 @@ class MongoDbGed:
         users = {}
         # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
 
-        db = self.__mongo_client__.GED
+        db = self.__mongo_client__.USERS
 
         try:
             cursor = db.users.find()
@@ -176,7 +176,7 @@ class MongoDbGed:
                     role
                     ):
 
-        db = self.__mongo_client__.GED
+        db = self.__mongo_client__.USERS
 
         query = {
             "user_name": user_name,
