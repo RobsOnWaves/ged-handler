@@ -1,6 +1,6 @@
 import uvicorn
 import os
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from typing import Union
 from enum import Enum
 from fastapi import Depends, FastAPI, HTTPException, status, Form, UploadFile
@@ -11,17 +11,12 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from libs.mongo_db_handler import MongoDbGed
 from libs.ged_file_handler import GedFileHandler
-from emoji import emojize
-
-
-nok_string = "   " + emojize(":no_entry:" + ":musical_note:", language='alias') + "something went wrong for Fay Wray and King Kong" \
-             + emojize(":musical_note:" + ":lips:", language='alias')
+from libs.messages import Messages
 
 
 class Roles(str, Enum):
     admin = "admin"
     user = "user"
-
 
 
 # to get a string like this run:
@@ -58,32 +53,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 app = FastAPI()
 
-
-def time_window_control(date_start: datetime, date_end: datetime, current_user: User):
-    time_window_validated = False
-    diff_time = date_end - date_start
-
-    if date_start.date() != date_end.date():
-        status_date = "hi " + str(current_user.username) + nok_string + " the dates of start and stop must be the same"
-        time_window_validated = False
-    elif date_start > date_end:
-        status_date = "hi " + str(current_user.username) + nok_string + " you can't finish before you start"
-        time_window_validated = False
-    elif diff_time.total_seconds() > 10800.0:
-        status_date = "hi " + str(current_user.username) + nok_string + " for the sake of our servers," \
-                                                                      " time window limited to three hours"
-        time_window_validated = False
-    elif date_start > datetime.utcnow() or date_end > datetime.utcnow():
-        status_date = "hi " + str(current_user.username) + nok_string + " Fylakio is futuristic but does not accept" \
-                                                                        " dates in the future"
-        time_window_validated = False
-    else:
-        time_window_validated = True
-        status_date = nok_string + "Unhandled time_window_control case"
-
-    return {'status_date': status_date, 'time_window_validated': time_window_validated}
-
-
 def el_parametrizor(mode_debug=False):
     if mode_debug:
         os.environ['URL_MONGO'] = "localhost:27017"
@@ -97,6 +66,42 @@ el_parametrizor(True)
 
 mongo_handler = MongoDbGed(address=os.environ['URL_MONGO'], user=os.environ['USR_MONGO'],
                            password=os.environ['PWD_MONGO'])
+
+
+messages = Messages()
+
+
+def time_window_control(date_start: datetime, date_end: datetime, current_user: User):
+    time_window_validated = False
+    diff_time = date_end - date_start
+
+    if date_start.date() != date_end.date():
+        status_date = "hi " + str(current_user.username) + messages.nok_string + \
+                      " the dates of start and stop must be the same"
+
+        time_window_validated = False
+
+    elif date_start > date_end:
+        status_date = "hi " + str(current_user.username) + messages.nok_string +\
+                      " you can't finish before you start"
+
+        time_window_validated = False
+
+    elif diff_time.total_seconds() > 10800.0:
+        status_date = "hi " + str(current_user.username) + messages.nok_string + \
+                      " for the sake of our servers, time window limited to three hours"
+
+        time_window_validated = False
+
+    elif date_start > datetime.utcnow() or date_end > datetime.utcnow():
+        status_date = "hi " + str(current_user.username) + messages.nok_string +\
+                      " ged-handler is futuristic but does not accept dates in the future"
+        time_window_validated = False
+    else:
+        time_window_validated = True
+        status_date = messages.nok_string + "Unhandled time_window_control case"
+
+    return {'status_date': status_date, 'time_window_validated': time_window_validated}
 
 
 def verify_password(plain_password, hashed_password):
@@ -183,7 +188,7 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 @app.post("/create_user")
 async def create_user(user_name: str = Form(),
                       email: str = Form(regex=r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)",
-                                        description="must be an email adress"),
+                                        description="must be an email address"),
                       full_name: str = Form(),
                       password: str = Form(min_length=10, description="mini. 10 characters"),
                       role: Roles = Form(),
@@ -192,7 +197,7 @@ async def create_user(user_name: str = Form(),
         return mongo_handler.insert_user(user_name, full_name, email, get_password_hash(password),
                                          current_user.username, role)
     else:
-        return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
+        return {'response': messages.nok_string}
 
 
 @app.post("/ged_file")
@@ -205,22 +210,22 @@ async def upload_ged_file(file: UploadFile,
         return mongo_handler.insert_list_of_ged_objets(collection_name=ged_import_name, ged_handler=ged_handler)
 
     else:
-        return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
+        return {'response': messages.nok_string}
 
 
 @app.get("/ged_stored_collection_to_json_answer")
 async def ged_stored_collection_to_json_answer(ged_collection_name: str,
-                                        current_user: User = Depends(get_current_active_user)):
+                                               current_user: User = Depends(get_current_active_user)):
 
     if current_user.role in ['admin', 'user']:
         return mongo_handler.from_mongo_to_ged_list_dict(collection_name=ged_collection_name)
     else:
-        return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
+        return {'response': messages.nok_string}
 
 
 @app.get("/ged_stored_collection_to_json_file")
 async def ged_stored_collection_to_json_file(ged_collection_name: str,
-                                        current_user: User = Depends(get_current_active_user)):
+                                             current_user: User = Depends(get_current_active_user)):
 
     if current_user.role in ['admin', 'user']:
 
@@ -232,7 +237,7 @@ async def ged_stored_collection_to_json_file(ged_collection_name: str,
         return FileResponse(ged_collection_name + '.json')
 
     else:
-        return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
+        return {'response': messages.nok_string}
 
 
 @app.post("/ged_file_to_json_answer")
@@ -246,7 +251,7 @@ async def ged_collection_to_json_answer(file: UploadFile,
         return ged_handler.listed_documents
 
     else:
-        return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
+        return {'response': messages.nok_string}
 
 
 @app.get("/ged_stored_collections")
@@ -257,9 +262,8 @@ async def ged_stored_collections(current_user: User = Depends(get_current_active
         return mongo_handler.get_collections()
 
     else:
-        return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
+        return {'response': messages.nok_string}
 
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
