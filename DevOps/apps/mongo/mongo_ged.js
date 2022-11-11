@@ -1,5 +1,7 @@
 use GED
 
+use USERS
+
 db.users.createIndex({ "user_name": 1 }, { unique: true })
 
 db.users.insert({

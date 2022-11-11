@@ -210,7 +210,7 @@ async def upload_ged_file(file: UploadFile,
         return mongo_handler.insert_list_of_ged_objets(collection_name=ged_import_name, ged_handler=ged_handler)
 
     else:
-        return {'response': messages.nok_string}
+        return {'response': messages.denied_entry}
 
 
 @app.get("/ged_stored_collection_to_json_answer")
