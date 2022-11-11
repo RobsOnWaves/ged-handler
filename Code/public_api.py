@@ -231,7 +231,8 @@ async def ged_stored_collection_to_json_file(ged_collection_name: str,
 
         with open(ged_collection_name + '.json', 'w') as convert_file:
             ged_listed_dict = mongo_handler.from_mongo_to_ged_list_dict(collection_name=ged_collection_name)
-            jsoned_ged = mongo_handler.jsonize_ged_dict(ged_listed_dict)
+            ged_handler = GedFileHandler()
+            jsoned_ged = ged_handler.jsonize_ged_dict(ged_listed_dict)
             convert_file.write(jsoned_ged)
 
         return FileResponse(ged_collection_name + '.json')
@@ -260,6 +261,23 @@ async def ged_stored_collections(current_user: User = Depends(get_current_active
     if current_user.role in ['admin', 'user']:
 
         return mongo_handler.get_collections()
+
+    else:
+        return {'response': messages.nok_string}
+
+
+@app.post("/ged_file_to_json_file")
+async def ged_collection_to_json_file(file: UploadFile,
+                                      current_user: User = Depends(get_current_active_user)):
+
+    if current_user.role in ['admin', 'user']:
+
+        ged_handler = GedFileHandler()
+        ged_handler.from_file_to_list_of_dict_with_cleanup(file, path="tmp/")
+
+        with open("tmp/" + file.filename + '.json', 'w') as convert_file:
+            convert_file.write(ged_handler.jsonize_ged_dict(ged_handler.listed_documents))
+        return FileResponse("tmp/" + file.filename + '.json')
 
     else:
         return {'response': messages.nok_string}
