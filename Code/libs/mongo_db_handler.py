@@ -2,16 +2,12 @@ import json
 
 from pymongo import MongoClient
 from libs.ged_file_handler import GedFileHandler
+from libs.messages import Messages
 import datetime
-
 import copy
-from emoji import emojize
 
 
 class MongoDbGed:
-    nok_string = {'response' : "   " + emojize(":no_entry:" + ":musical_note:",
-                                 language='alias') + "something went wrong for Fay Wray and King Kong" \
-                 + emojize(":musical_note:" + ":lips:", language='alias') }
 
     def __init__(self, address: str, user: str, password: str):
         self.__address__ = address
@@ -19,6 +15,7 @@ class MongoDbGed:
         self.__password__ = password
         self.__connection_string__ = "mongodb://" + user + ":" + password + "@" + address
         self.__mongo_client__ = MongoClient(self.__connection_string__)
+        self.__messages__ = Messages()
 
     @staticmethod
     def from_ged_dict_to_mongodb_dict(ged_handler: GedFileHandler = GedFileHandler(),
@@ -202,15 +199,13 @@ class MongoDbGed:
             status = db.users.insert_one(query)
 
         except errors.DuplicateKeyError as e:
-            return {'response' : "user already exists" + self.nok_string }
+            return {'response' : "user already exists" + self.__messages__.nok_string }
 
         except Exception as e:
-            return {'response' : "MongoDB error" + "Exception: " + str(e) + self.nok_string }
+            return {'response' : "MongoDB error" + "Exception: " + str(e) + self.__messages__.nok_string }
 
-        ok_string = {'response' : emojize(":ok_woman:", language='alias') + emojize(":+1:", language='alias') + "user '" + user_name \
-                    + "' created" + emojize(":kiss:", language='alias') }
-
-        return ok_string if status.acknowledged else self.nok_string
+        return self.__messages__.build_ok_user_string(user_name=user_name) if status.acknowledged else \
+            self.__messages__.nok_string
 
     @staticmethod
     def jsonize_ged_dict(ged_list_of_dict: dict):
