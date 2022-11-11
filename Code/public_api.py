@@ -201,18 +201,15 @@ async def upload_ged_file(file: UploadFile,
                           current_user: User = Depends(get_current_active_user)):
     if current_user.role == "admin":
         ged_handler = GedFileHandler()
-        contents = file.file.read()
-        with open(file.filename, 'wb') as f:
-            f.write(contents)
-        ged_handler.from_file_to_list_of_dict(file=file.filename)
+        ged_handler.from_file_to_list_of_dict_with_cleanup(file, path="tmp/")
         return mongo_handler.insert_list_of_ged_objets(collection_name=ged_import_name, ged_handler=ged_handler)
 
     else:
         return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
 
 
-@app.get("/ged_collection_to_json_answer")
-async def ged_collection_to_json_answer(ged_collection_name: str,
+@app.get("/ged_stored_collection_to_json_answer")
+async def ged_stored_collection_to_json_answer(ged_collection_name: str,
                                         current_user: User = Depends(get_current_active_user)):
 
     if current_user.role in ['admin', 'user']:
@@ -221,8 +218,8 @@ async def ged_collection_to_json_answer(ged_collection_name: str,
         return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
 
 
-@app.get("/ged_collection_to_json_file")
-async def ged_collection_to_json_answer(ged_collection_name: str,
+@app.get("/ged_stored_collection_to_json_file")
+async def ged_stored_collection_to_json_file(ged_collection_name: str,
                                         current_user: User = Depends(get_current_active_user)):
 
     if current_user.role in ['admin', 'user']:
@@ -233,6 +230,20 @@ async def ged_collection_to_json_answer(ged_collection_name: str,
             convert_file.write(jsoned_ged)
 
         return FileResponse(ged_collection_name + '.json')
+
+    else:
+        return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
+
+
+@app.post("/ged_file_to_json_answer")
+async def ged_collection_to_json_answer(file: UploadFile,
+                                        current_user: User = Depends(get_current_active_user)):
+
+    if current_user.role in ['admin', 'user']:
+
+        ged_handler = GedFileHandler()
+        ged_handler.from_file_to_list_of_dict_with_cleanup(file, path="tmp/")
+        return ged_handler.listed_documents
 
     else:
         return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
