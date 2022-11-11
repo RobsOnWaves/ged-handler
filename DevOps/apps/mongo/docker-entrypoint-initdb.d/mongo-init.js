@@ -23,7 +23,7 @@ db.users.insert({
 db.users.insert({
     "user_name": "user",
 
-    "machines": {
+    "user": {
         "username": "user",
         "full_name": "user",
         "email": "user@ged-api.com",

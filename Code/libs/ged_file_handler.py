@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import date
 import random
+from fastapi import UploadFile
 
 
 class GedFileHandler:
@@ -309,3 +310,11 @@ class GedFileHandler:
 
     def load_ged_listed_dict(self, ged_listed_dict: [dict]):
         self.listed_documents = ged_listed_dict
+
+    def from_file_to_list_of_dict_with_cleanup(self, file: UploadFile, path: str = ""):
+        contents = file.file.read()
+        with open(path + file.filename, 'wb') as f:
+            f.write(contents)
+        self.from_file_to_list_of_dict(file=path + file.filename)
+        rem_file = Path(path + file.filename)
+        rem_file.unlink()
