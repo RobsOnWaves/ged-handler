@@ -249,6 +249,17 @@ async def ged_collection_to_json_answer(file: UploadFile,
         return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
 
 
+@app.get("/ged_stored_collections")
+async def ged_stored_collections(current_user: User = Depends(get_current_active_user)):
+
+    if current_user.role in ['admin', 'user']:
+
+        return mongo_handler.get_collections()
+
+    else:
+        return {'response': emojize(":no_entry:", language="alias") + "vous n'avez pas dit le mot magigue"}
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
 

@@ -241,3 +241,17 @@ class MongoDbGed:
                     print('Exception in transforming ged dict to mongo object death:' + str(e))
 
         return json.dumps(ged_list_of_dict)
+
+    def get_collections(self):
+
+        users = {}
+        # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
+
+        db = self.__mongo_client__.GED
+
+        try:
+            collection_names = db.list_collection_names()
+            return {"collection_names": collection_names}
+
+        except Exception as e:
+            return "MongoDB error Exception: " + str(e)
