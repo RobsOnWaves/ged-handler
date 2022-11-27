@@ -6,13 +6,13 @@ echo "push mode: $2"
 
 cd apps/ged_handler
 
-cp Dockerfile ../../Code/
+cp Dockerfile ../../../Code/
 
 commit_hash=$(git log -1 --format=format:"%H")
 
 echo hash:"$commit_hash"
 
-cd ../../Code/
+cd ../../../Code/
 echo "building ged_handler image tag: $commit_hash and latest$1"
 
 ./docker_images_builder_cross_build.sh ged_handler "$commit_hash" "$2"
