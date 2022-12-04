@@ -1,0 +1,37 @@
+version: '3.7'
+
+volumes:
+  mongogeddata:
+
+services:
+
+  ged_handler:
+    image: ged_handler
+    restart: always
+    environment:
+      'URL_MONGO': "mongo:27017"
+
+      'USR_MONGO': "root"
+
+      'PWD_MONGO': "rootmongopwd"
+
+    ports:
+      - "5555:8000"
+
+  mongo:
+    image: mongo:5.0.6-focal
+    restart: always
+    environment:
+
+      MONGO_INITDB_ROOT_PASSWORD: rootmongopwd
+
+      MONGO_INITDB_ROOT_USERNAME: root
+
+    volumes:
+      - mongogeddata:/data/db
+      - $PWD/mongo/mongo_ged.js:/mongo_ged.js:ro
+      - $PWD/mongo/init_mongo.sh:/docker-entrypoint-initdb.d/init_mongo.sh
+
+    #port publishing to be removed in production
+    ports:
+      - "27017:27017"
