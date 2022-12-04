@@ -1,0 +1,25 @@
+version: '3.7'
+
+services:
+#Beware: in order to work with other services from ged handler the network ged_network must be created in Docker:
+#command line: $ docker network create ged_network
+
+  ged_handler:
+    image: ged_handler
+    restart: always
+    environment:
+      'URL_MONGO': "mongo:27017"
+
+      'USR_MONGO': "root"
+
+      'PWD_MONGO': "rootmongopwd"
+
+    networks:
+      - ged_network
+
+    ports:
+      - "5555:8000"
+
+networks:
+  ged_network:
+    external: true
