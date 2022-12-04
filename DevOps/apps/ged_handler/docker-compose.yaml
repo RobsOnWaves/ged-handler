@@ -1,36 +1,25 @@
 version: '3.7'
 
-volumes:
-  mongogeddata:
-
 services:
-
-  mongo:
-    image: mongo:5.0.6-focal
-    restart: always
-    environment:
-      MONGO_INITDB_ROOT_PASSWORD: rootmongopwd
-      MONGO_INITDB_ROOT_USERNAME: root
-
-    volumes:
-      - mongogeddata:/data/db
-      - $PWD/mongo_ged.js:/mongo_ged.js:ro
-      - $PWD/init_mongo.sh:/docker-entrypoint-initdb.d/init_mongo.sh
-
-    ports:
-      - "27017:27017"
+#Beware: in order to work with other services from ged handler the network ged_network must be created in Docker:
+#command line: $ docker network create ged_network
 
   ged_handler:
-    image:
+    image: ged_handler
     restart: always
     environment:
-      MONGO_INITDB_ROOT_PASSWORD: rootmongopwd
-      MONGO_INITDB_ROOT_USERNAME: root
+      'URL_MONGO': "mongo:27017"
 
-    volumes:
-      - mongogeddata:/data/db
-      - $PWD/mongo_ged.js:/mongo_ged.js:ro
-      - $PWD/init_mongo.sh:/docker-entrypoint-initdb.d/init_mongo.sh
+      'USR_MONGO': "root"
+
+      'PWD_MONGO': "rootmongopwd"
+
+    networks:
+      - ged_network
 
     ports:
-      - "27017:27017"
+      - "5555:8000"
+
+networks:
+  ged_network:
+    external: true
