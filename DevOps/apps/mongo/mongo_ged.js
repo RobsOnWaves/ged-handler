@@ -1,6 +1,7 @@
-use GED
 
-use USERS
+db = new Mongo().getDB("GED");
+
+db = new Mongo().getDB("USERS");
 
 db.users.createIndex({ "user_name": 1 }, { unique: true })
 
