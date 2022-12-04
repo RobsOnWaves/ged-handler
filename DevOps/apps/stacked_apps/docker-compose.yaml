@@ -29,7 +29,7 @@ services:
 
     volumes:
       - mongogeddata:/data/db
-      - $PWD/mongo/mongo_ged.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - $PWD/mongo_ged.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
 
     #port publishing to be removed in production
     ports:
