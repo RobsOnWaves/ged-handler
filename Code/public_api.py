@@ -284,5 +284,20 @@ async def ged_collection_to_json_file(file: UploadFile,
         return {'response': messages.nok_string}
 
 
+@app.post("/modify_user_password")
+async def modify_user_password(
+                                          user_name: str = Form(description="user name that needs its password to "
+                                                                            "be modified"),
+                                          password: str = Form(min_length=10, description="mini. 10 characters"),
+                                          current_user: User = Depends(get_current_active_user)):
+
+        if current_user.role in ['admin']:
+
+            return mongo_handler.modify_user_password(user_name=user_name, hashed_password=get_password_hash(password))
+
+        else:
+            return {'response': messages.nok_string}
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
