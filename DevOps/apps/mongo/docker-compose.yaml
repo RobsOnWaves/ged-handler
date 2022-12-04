@@ -17,8 +17,7 @@ services:
 
     volumes:
       - mongogeddata:/data/db
-      - $PWD/mongo_ged.js:/mongo_ged.js:ro
-      - $PWD/init_mongo.sh:/docker-entrypoint-initdb.d/init_mongo.sh
+      - $PWD/mongo_ged.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
 
     networks:
       - ged_network
