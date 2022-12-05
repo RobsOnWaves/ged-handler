@@ -330,7 +330,7 @@ class GedFileHandler:
                         ged_list_of_dict[index]['marriage']['date_info']['date'] = \
                             str(ged_object['marriage']['date_info']['date'])
                 except Exception as e:
-                    print('Exception in transforming ged dict to mongo object marriage:' + str(e))
+                    print('Exception in transforming ged dict to json marriage:' + str(e))
 
             if 'birth' in ged_object:
                 try:
@@ -338,7 +338,7 @@ class GedFileHandler:
                         ged_list_of_dict[index]['birth']['date_info']['date'] = \
                             str(ged_object['birth']['date_info']['date'])
                 except Exception as e:
-                    print('Exception in transforming ged dict to mongo object birth:' + str(e))
+                    print('Exception in transforming ged dict to json birth:' + str(e))
 
             if 'death' in ged_object:
                 try:
@@ -346,6 +346,6 @@ class GedFileHandler:
                         ged_list_of_dict[index]['death']['date_info']['date'] = \
                             str(ged_object['death']['date_info']['date'])
                 except Exception as e:
-                    print('Exception in transforming ged dict to mongo object death:' + str(e))
+                    print('Exception in transforming ged dict to json death:' + str(e))
 
         return json.dumps(ged_list_of_dict)
