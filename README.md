@@ -23,6 +23,15 @@ For all uses you should download the stacked apps and init files from GitHub
 ### Local run with default credentials (not to be used for public access)
 
 1. Starting the service
+
+Default administator credentials (to be used without the quotes):
+- login: "admin"
+- password: "ThisIsADummyPasswordForAdmin"
+
+Default user credentials (to be used without the quotes):
+- login: "user"
+- password: "ThisIsADummyPasswordForUser"
+
 2. Using the service
 
 ### Run with customized credentials (for public access)

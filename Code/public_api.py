@@ -5,7 +5,7 @@ from typing import Union
 from enum import Enum
 from fastapi import Depends, FastAPI, HTTPException, status, Form, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
