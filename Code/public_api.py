@@ -63,7 +63,7 @@ def el_parametrizor(mode_debug=False):
         os.environ['PWD_MONGO'] = "rootmongopwd"
 
 
-el_parametrizor(False)
+el_parametrizor(False)f
 
 mongo_handler = MongoDbGed(address=os.environ['URL_MONGO'], user=os.environ['USR_MONGO'],
                            password=os.environ['PWD_MONGO'])
