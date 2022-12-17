@@ -35,6 +35,8 @@ Default user credentials (to be used without the quotes):
 2. Using the service
 
 ### Run with customized credentials (for public access)
-1. Getting hashed password for admin and standard user of the app
+1. Getting hashed password for admin and standard user of the app 
+
+You can use this website to generate hashed password (bcrypt is used): [bcrypt online](https://bcrypt.online/)
 2. Modifying the MongoDB init files for to implement the new hashed passwords
 3. Modifying the docker-compose.yaml for changing the MongoDB admin user password
