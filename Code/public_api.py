@@ -53,7 +53,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 app = FastAPI()
 
-
 def el_parametrizor(mode_debug=False):
     if mode_debug:
         os.environ['URL_MONGO'] = "localhost:27017"
