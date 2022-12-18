@@ -53,7 +53,17 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-app = FastAPI()
+app = FastAPI(description="""
+#About
+
+GED-Handler is an authenticated app that allows you to : 
+1) Store GED-files in a MongoDB database
+2) Retrieve JSON genealogy objects files (imported from 1.)
+3) Direct conversions from GED-files to JSON genealogy objects files
+
+GED-Handler is written in Python with [FastAPI](https://fastapi.tiangolo.com/) and deployed with Docker (details of the 
+code at: [GitHub GED-Handler repo](https://github.com/RobsOnWaves/ged-handler))
+""", title="GED-Handler")
 
 
 def el_parametrizor(mode_debug=False):
