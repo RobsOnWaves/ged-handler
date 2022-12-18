@@ -24,7 +24,34 @@ For all uses you should download the stacked apps and init files from GitHub
 
 1. Starting the service
 
-Default administator credentials (to be used without the quotes):
+Download the content of the folder [stacked_apps](https://github.com/RobsOnWaves/ged-handler/tree/GED-38-create-a-readme-on-how-to-launch-the-app-with-docker-compose-and-how-to-use-it/DevOps/apps/stacked_apps) in a dedicated folder (for the example, we will keep that is in the repo "stacked_apps").
+
+The content of your dedicated folder should look like this:
+	
+	── stacked_apps
+    	├── docker-compose.yaml
+    	└── mongo_ged.js
+
+Then ```cd``` to ```stacked_apps``` and run the following command:
+
+```console
+$ docker compose up -d
+```
+Or (depending of the version of your Docker Engine)
+
+
+```console
+$ docker-compose up -d
+```
+
+
+2. Using the service
+
+Go to [http://localhost:5555](http://localhost:5555)
+
+You can log in with one of those credentials:
+
+Default administrator credentials (to be used without the quotes):
 - login: "admin"
 - password: "ThisIsADummyPasswordForAdmin"
 
@@ -32,7 +59,7 @@ Default user credentials (to be used without the quotes):
 - login: "user"
 - password: "ThisIsADummyPasswordForUser"
 
-2. Using the service
+
 
 ### Run with customized credentials (for public access)
 1. Getting hashed password for admin and standard user of the app 
