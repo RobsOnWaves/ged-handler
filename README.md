@@ -35,12 +35,12 @@ The content of your dedicated folder should look like this:
 
 Then ```cd``` to ```stacked_apps``` and run the following command:
 
-```console
+```bash
 $ docker compose up -d
 ```
 Or (depending on the version of your Docker Engine)
 
-```console
+```bash
 $ docker-compose up -d
 ```
 
@@ -75,11 +75,11 @@ You can use this website to generate hashed password (bcrypt is used): [bcrypt o
 In ```mongo_ged.js``` modify the content to replace the standard hashed passwords by the ones generated before as stated here :
 
 
-```json lines
+```javascript
 
-db = new Mongo().getDB("GED")
+db = new Mongo().getDB("GED");
 
-db = new Mongo().getDB("USERS")
+db = new Mongo().getDB("USERS");
 
 db.users.createIndex({ "user_name": 1 }, { unique: true })
 
