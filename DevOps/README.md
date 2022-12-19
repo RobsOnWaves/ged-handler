@@ -75,7 +75,7 @@ You can use this website to generate hashed password (bcrypt is used): [bcrypt o
 In ```mongo_ged.js``` modify the content to replace the standard hashed passwords by the ones generated before as stated here :
 
 
-```bson
+```json lines
 
 db = new Mongo().getDB("GED");
 
