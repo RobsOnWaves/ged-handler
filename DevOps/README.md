@@ -77,9 +77,9 @@ In ```mongo_ged.js``` modify the content to replace the standard hashed password
 
 ```json lines
 
-db = new Mongo().getDB("GED");
+db = new Mongo().getDB("GED")
 
-db = new Mongo().getDB("USERS");
+db = new Mongo().getDB("USERS")
 
 db.users.createIndex({ "user_name": 1 }, { unique: true })
 
