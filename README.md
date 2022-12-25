@@ -178,35 +178,37 @@ services:
 
 /!\ Beware, the root user is created the first time you launch the MongoDB service, so, if you already launched it before you made modifications, you should delete your Docker volume attached to the MongoDB service.
 
-# Sources presentation
+# Dev zone
+
+Here is a tree view of the source files with commments
 
 ```console
-.
-|-- Code
-|   |-- data_in
-|   |-- docker_images_builder_cross_build.sh
-|   |-- libs
-|   |   |-- ged_file_handler.py
-|   |   |-- __init__.py
-|   |   |-- messages.py
-|   |   |-- mongo_db_handler.py
-|   |-- main.py
-|   |-- public_api.py
-|   |-- requirements.txt
-|   |-- tmp
-|-- DevOps
-|   |-- apps
-|   |   |-- ged_handler
-|   |   |   |-- docker-compose.yaml
-|   |   |   |-- Dockerfile
-|   |   |-- mongo
-|   |   |   |-- docker-compose.yaml
-|   |   |   |-- mongo_ged.js
-|   |   |-- stacked_apps
-|   |       |-- docker-compose.yaml
-|   |       |-- mongo_ged.js
-|   |-- docker_images_builder.sh
-|   |-- install_docker.sh
-|-- LICENSE
-|-- README.md
+`-- ged-handler
+    |-- Code
+    |   |-- data_in -> empty dir for internal use             
+    |   |-- docker_images_builder_cross_build.sh -> script that handles docker building (called by "docker_images_builder.sh")
+    |   |-- libs
+    |   |   |-- ged_file_handler.py -> classfor handling ged-files, standalone lib that can be used just for ged-files convertion
+    |   |   |-- __init__.py
+    |   |   |-- messages.py -> class where are defined all messages returned by the app
+    |   |   `-- mongo_db_handler.py -> class where are abstracted all MongoDB operations
+    |   |-- main.py -> used as a sandbox to test classes usages
+    |   |-- public_api.py -> FastAPI routes defintions and operations
+    |   |-- requirements.txt
+    |   `-- tmp -> empty dir for internal use
+    |-- DevOps
+    |   |-- apps
+    |   |   |-- ged_handler
+    |   |   |   |-- docker-compose.yaml -> Standalone docker compose for ged-handler app
+    |   |   |   `-- Dockerfile -> Dockerfile for building ged-handler docker image
+    |   |   |-- mongo
+    |   |   |   |-- docker-compose.yaml -> Standalone docker compose for mongo app
+    |   |   |   `-- mongo_ged.js -> initialization javascript file for creating default API users
+    |   |   `-- stacked_apps
+    |   |       |-- docker-compose.yaml -> MongoDB + ged-handler app docker compose
+    |   |       `-- mongo_ged.js -> initialization javascript file for creating default API users
+    |   |-- docker_images_builder.sh -> script to build and push docker images
+    |   `-- install_
+    |-- LICENSE
+    `-- README.md
 ```
