@@ -182,7 +182,7 @@ async def docs_redirect():
     return RedirectResponse(url='/docs')
 
 
-@app.post("/token", response_model=Token)
+@app.post("/token", response_model=Token, description="Returns a token after successful authentication")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = authenticate_user(mongo_handler.get_users(), form_data.username, form_data.password)
     if not user:
@@ -198,12 +198,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/users/me/", response_model=User)
+@app.get("/users/me/", response_model=User, description="Returns information about the current logged in user")
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 
-@app.post("/create_user")
+@app.post("/create_user", description="Creating a new user, restricted to admin privileges")
 async def create_user(user_name: str = Form(),
                       email: str = Form(regex=r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)",
                                         description="must be an email address"),
@@ -218,7 +218,7 @@ async def create_user(user_name: str = Form(),
         return {'response': messages.nok_string}
 
 
-@app.post("/ged_file")
+@app.post("/ged_file", description="Uploading a ged-file to the database, restricted to admin privileges")
 async def upload_ged_file(file: UploadFile,
                           ged_import_name: str = Form(description="import name: must not exist already"),
                           current_user: User = Depends(get_current_active_user)):
@@ -231,7 +231,7 @@ async def upload_ged_file(file: UploadFile,
         return {'response': messages.denied_entry}
 
 
-@app.get("/ged_stored_collection_to_json_answer")
+@app.get("/ged_stored_collection_to_json_answer", description="Returns a JSON answer from a stored collection")
 async def ged_stored_collection_to_json_answer(ged_collection_name: str,
                                                current_user: User = Depends(get_current_active_user)):
 
@@ -241,7 +241,7 @@ async def ged_stored_collection_to_json_answer(ged_collection_name: str,
         return {'response': messages.nok_string}
 
 
-@app.get("/ged_stored_collection_to_json_file")
+@app.get("/ged_stored_collection_to_json_file", description="Returns a JSON file from a stored collection")
 async def ged_stored_collection_to_json_file(ged_collection_name: str,
                                              current_user: User = Depends(get_current_active_user)):
 
@@ -259,7 +259,8 @@ async def ged_stored_collection_to_json_file(ged_collection_name: str,
         return {'response': messages.nok_string}
 
 
-@app.post("/ged_file_to_json_answer")
+@app.post("/ged_file_to_json_answer", description="Returns a converted JSON file from a ged-file"
+                                                  " without storing it in the database")
 async def ged_collection_to_json_answer(file: UploadFile,
                                         current_user: User = Depends(get_current_active_user)):
 
@@ -273,7 +274,7 @@ async def ged_collection_to_json_answer(file: UploadFile,
         return {'response': messages.nok_string}
 
 
-@app.get("/ged_stored_collections")
+@app.get("/ged_stored_collections", description="Returns a list of all stored collections")
 async def ged_stored_collections(current_user: User = Depends(get_current_active_user)):
 
     if current_user.role in ['admin', 'user']:
@@ -284,9 +285,11 @@ async def ged_stored_collections(current_user: User = Depends(get_current_active
         return {'response': messages.nok_string}
 
 
-@app.post("/ged_file_to_json_file")
+@app.post("/ged_file_to_json_file", description="Returns a converted JSON file from a ged-file"
+                                                "without storing it in the database")
 async def ged_collection_to_json_file(file: UploadFile,
-                                      current_user: User = Depends(get_current_active_user)):
+                                      current_user: User = Depends(get_current_active_user)
+                                      ):
 
     if current_user.role in ['admin', 'user']:
 
@@ -301,7 +304,7 @@ async def ged_collection_to_json_file(file: UploadFile,
         return {'response': messages.nok_string}
 
 
-@app.post("/modify_user_password")
+@app.post("/modify_user_password", description="Modify an exiting user password, restricted to admin privileges")
 async def modify_user_password(
                                           user_name: str = Form(description="user name that needs its password to "
                                                                             "be modified"),
