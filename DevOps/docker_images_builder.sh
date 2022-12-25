@@ -15,7 +15,7 @@ echo hash:"$commit_hash"
 cd ../../../Code/
 echo "building ged_handler image tag: $commit_hash and latest$1"
 
-./docker_images_builder_cross_build.sh ged_handler "$commit_hash" "$2"
+./docker_images_builder_cross_build.sh "$3" "$commit_hash" "$2"
 
 EXIT_BUILD=$?
 if [ $EXIT_BUILD -eq 0 ]
@@ -26,7 +26,7 @@ else
      exit $EXIT_BUILD
 fi
 
-./docker_images_builder_cross_build.sh ged_handler latest"$1" "$2"
+./docker_images_builder_cross_build.sh "$3" latest"$1" "$2"
 
 EXIT_BUILD=$?
 if [ $EXIT_BUILD -eq 0 ]
