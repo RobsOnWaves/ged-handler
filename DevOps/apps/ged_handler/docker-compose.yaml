@@ -5,7 +5,7 @@ services:
 #command line: $ docker network create ged_network
 
   ged_handler:
-    image: ged_handler
+    image: robinatorondocker/ged-handler
     restart: always
     environment:
       'URL_MONGO': "mongo:27017"
