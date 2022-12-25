@@ -177,3 +177,36 @@ services:
 ```
 
 /!\ Beware, the root user is created the first time you launch the MongoDB service, so, if you already launched it before you made modifications, you should delete your Docker volume attached to the MongoDB service.
+
+# Sources presentation
+
+```console
+.
+|-- Code
+|   |-- data_in
+|   |-- docker_images_builder_cross_build.sh
+|   |-- libs
+|   |   |-- ged_file_handler.py
+|   |   |-- __init__.py
+|   |   |-- messages.py
+|   |   |-- mongo_db_handler.py
+|   |-- main.py
+|   |-- public_api.py
+|   |-- requirements.txt
+|   |-- tmp
+|-- DevOps
+|   |-- apps
+|   |   |-- ged_handler
+|   |   |   |-- docker-compose.yaml
+|   |   |   |-- Dockerfile
+|   |   |-- mongo
+|   |   |   |-- docker-compose.yaml
+|   |   |   |-- mongo_ged.js
+|   |   |-- stacked_apps
+|   |       |-- docker-compose.yaml
+|   |       |-- mongo_ged.js
+|   |-- docker_images_builder.sh
+|   |-- install_docker.sh
+|-- LICENSE
+|-- README.md
+```
