@@ -179,8 +179,19 @@ services:
 /!\ Beware, the root user is created the first time you launch the MongoDB service, so, if you already launched it before you made modifications, you should delete your Docker volume attached to the MongoDB service.
 
 # Dev zone
+## Philosophy of the project
+Though this project is aimed to be a ged files handling app, it's also a playground for Python, FastAPI & DevOps.
 
-Here is a tree view of the source files with commments
+There is no frontend for now, as I am not a frontend developer, and some help would be appreciated.
+
+## GEDCOM existing package
+
+Please note that I found just before releasing this that there is a full package for parsing GEDCOM here : [GEDCOM](https://pypi.org/project/python-gedcom/).
+
+I didn't conduct any kind of comparison of what it does ***vs*** what ged-handler does.
+
+## Source treeview and files purpose
+Here is a tree view of the source files with comments:
 
 ```console
 `-- ged-handler
@@ -188,7 +199,7 @@ Here is a tree view of the source files with commments
     |   |-- data_in -> empty dir for internal use             
     |   |-- docker_images_builder_cross_build.sh -> script that handles docker building (called by "docker_images_builder.sh")
     |   |-- libs
-    |   |   |-- ged_file_handler.py -> classfor handling ged-files, standalone lib that can be used just for ged-files convertion
+    |   |   |-- ged_file_handler.py -> class for handling ged-files, standalone lib that can be used just for ged-files convertion
     |   |   |-- __init__.py
     |   |   |-- messages.py -> class where are defined all messages returned by the app
     |   |   `-- mongo_db_handler.py -> class where are abstracted all MongoDB operations
@@ -207,8 +218,7 @@ Here is a tree view of the source files with commments
     |   |   `-- stacked_apps
     |   |       |-- docker-compose.yaml -> MongoDB + ged-handler app docker compose
     |   |       `-- mongo_ged.js -> initialization javascript file for creating default API users
-    |   |-- docker_images_builder.sh -> script to build and push docker images
-    |   `-- install_
+    |   `-- docker_images_builder.sh -> script to build and push docker images
     |-- LICENSE
     `-- README.md
 ```
