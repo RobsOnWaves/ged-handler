@@ -4,8 +4,20 @@ volumes:
   mongogeddata:
 
 services:
-#Beware: in order to work with other services from ged handler the network ged_network must be created in Docker:
-#command line: $ docker network create ged_network
+
+  ged_handler:
+    image: robinatorondocker/ged-handler
+    restart: always
+    environment:
+      'URL_MONGO': "mongo:27017"
+
+      'USR_MONGO': "root"
+
+      'PWD_MONGO': "rootmongopwd"
+
+    ports:
+      - "5555:8000"
+
   mongo:
     image: mongo:5.0.6-focal
     restart: always
@@ -19,12 +31,6 @@ services:
       - mongogeddata:/data/db
       - $PWD/mongo_ged.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
 
-    networks:
-      - ged_network
-
+    #port publishing to be removed in production
     ports:
       - "27017:27017"
-
-networks:
-  ged_network:
-    external: true

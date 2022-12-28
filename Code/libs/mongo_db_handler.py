@@ -197,10 +197,10 @@ class MongoDbGed:
             status = db.users.insert_one(query)
 
         except errors.DuplicateKeyError as e:
-            return {'response' : "user already exists" + self.__messages__.nok_string }
+            return {'response': "user already exists" + self.__messages__.nok_string}
 
         except Exception as e:
-            return {'response' : "MongoDB error" + "Exception: " + str(e) + self.__messages__.nok_string }
+            return {'response': "MongoDB error" + "Exception: " + str(e) + self.__messages__.nok_string}
 
         return self.__messages__.build_ok_user_string(user_name=user_name) if status.acknowledged else \
             self.__messages__.nok_string
@@ -218,3 +218,24 @@ class MongoDbGed:
 
         except Exception as e:
             return "MongoDB error Exception: " + str(e)
+
+    def modify_user_password(self,
+                             user_name: str,
+                             hashed_password: str
+                             ):
+
+        db = self.__mongo_client__.USERS
+
+        try:
+            status = db.users.update_one({
+                "user_name": user_name},
+                {"$set": {user_name + ".hashed_password": hashed_password}})
+
+        except errors.DuplicateKeyError as e:
+            return {'response': "user already exists" + self.__messages__.nok_string}
+
+        except Exception as e:
+            return {'response': "MongoDB error" + "Exception: " + str(e) + self.__messages__.nok_string}
+
+        return self.__messages__.build_ok_user_modified_string(user_name=user_name) if status.acknowledged else \
+            self.__messages__.nok_string
