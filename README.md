@@ -228,10 +228,10 @@ Here is a tree view of the source files with comments:
     |-- DevOps
     |   |-- apps
     |   |   |-- ged_handler
-    |   |   |   |-- docker-compose.yaml -> Standalone docker compose for ged-handler app
+    |   |   |   |-- docker-compose.yaml -> Standalone docker compose for ged-handler app, before launching it, be sure to create the network "ged_network" (see below for command)
     |   |   |   `-- Dockerfile -> Dockerfile for building ged-handler docker image
     |   |   |-- mongo
-    |   |   |   |-- docker-compose.yaml -> Standalone docker compose for mongo app
+    |   |   |   |-- docker-compose.yaml -> Standalone docker compose for mongo app, before launching it, be sure to create the network "ged_network" (see below for command)
     |   |   |   `-- mongo_ged.js -> initialization javascript file for creating default API users
     |   |   `-- stacked_apps
     |   |       |-- docker-compose.yaml -> MongoDB + ged-handler app docker compose
@@ -239,4 +239,9 @@ Here is a tree view of the source files with comments:
     |   `-- docker_images_builder.sh -> script to build and push docker images
     |-- LICENSE
     `-- README.md
+```
+
+Command to create a docker network (when using the ```docker-compose.yaml``` that are not in stacked_apps):
+```console
+docker network create ged_network
 ```
