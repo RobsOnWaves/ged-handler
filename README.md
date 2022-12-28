@@ -182,7 +182,25 @@ services:
 ## Philosophy of the project
 Though this project is aimed to be a ged files handling app, it's also a playground for Python, FastAPI & DevOps.
 
-There is no frontend for now, as I am not a frontend developer, and some help would be appreciated.
+The code is object-oriented.
+
+### For now, the toys I'm playing with on that project:
+
+- Jira
+- CodeSee
+- Docker
+- Python
+- PyCharm
+- Sonarlint
+- PEP8 compliance
+
+### Toys that I didn't bring to the project for now but I'm planning to bring: 
+- Postman
+- Jenkins (but no server = no Jenkins...)
+
+
+
+There is no frontend for now, as I am not a frontend developer, and some help/advices would be appreciated.
 
 ## GEDCOM existing package
 
