@@ -212,8 +212,8 @@ async def create_user(user_name: str = Form(),
                       role: Roles = Form(),
                       current_user: User = Depends(get_current_active_user)):
     if current_user.role == "admin":
-        return {'response': mongo_handler.insert_user(user_name, full_name, email, get_password_hash(password),
-                                                      current_user.username, role)}
+        return mongo_handler.insert_user(user_name, full_name, email, get_password_hash(password),
+                                         current_user.username, role)
     else:
         return {'response': messages.nok_string}
 
@@ -236,7 +236,7 @@ async def ged_stored_collection_to_json_answer(ged_collection_name: str,
                                                current_user: User = Depends(get_current_active_user)):
 
     if current_user.role in ['admin', 'user']:
-        return {'response': mongo_handler.from_mongo_to_ged_list_dict(collection_name=ged_collection_name)}
+        return mongo_handler.from_mongo_to_ged_list_dict(collection_name=ged_collection_name)
     else:
         return {'response': messages.nok_string}
 
@@ -279,7 +279,7 @@ async def ged_stored_collections(current_user: User = Depends(get_current_active
 
     if current_user.role in ['admin', 'user']:
 
-        return {'response': mongo_handler.get_collections()}
+        return mongo_handler.get_collections()
 
     else:
         return {'response': messages.nok_string}
@@ -311,13 +311,12 @@ async def modify_user_password(
                                           password: str = Form(min_length=10, description="mini. 10 characters"),
                                           current_user: User = Depends(get_current_active_user)):
 
-        if current_user.role in ['admin']:
+    if current_user.role in ['admin']:
 
-            return {'response': mongo_handler.modify_user_password(user_name=user_name,
-                                                                   hashed_password=get_password_hash(password)) }
+        return mongo_handler.modify_user_password(user_name=user_name, hashed_password=get_password_hash(password))
 
-        else:
-            return {'response': messages.nok_string}
+    else:
+        return {'response': messages.nok_string}
 
 
 if __name__ == "__main__":
