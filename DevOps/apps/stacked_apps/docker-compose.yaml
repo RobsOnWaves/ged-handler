@@ -6,7 +6,7 @@ volumes:
 services:
 
   ged_handler:
-    image: ged_handler
+    image: robinatorondocker/ged-handler
     restart: always
     environment:
       'URL_MONGO': "mongo:27017"
