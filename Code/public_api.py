@@ -212,8 +212,8 @@ async def create_user(user_name: str = Form(),
                       role: Roles = Form(),
                       current_user: User = Depends(get_current_active_user)):
     if current_user.role == "admin":
-        return mongo_handler.insert_user(user_name, full_name, email, get_password_hash(password),
-                                         current_user.username, role)
+        return {'response': mongo_handler.insert_user(user_name, full_name, email, get_password_hash(password),
+                                                      current_user.username, role)}
     else:
         return {'response': messages.nok_string}
 
@@ -313,7 +313,8 @@ async def modify_user_password(
 
     if current_user.role in ['admin']:
 
-        return mongo_handler.modify_user_password(user_name=user_name, hashed_password=get_password_hash(password))
+        return {'response': mongo_handler.modify_user_password(user_name=user_name,
+                                                               hashed_password=get_password_hash(password))}
 
     else:
         return {'response': messages.nok_string}
