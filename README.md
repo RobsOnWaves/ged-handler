@@ -20,6 +20,8 @@ GED-Handler is written in Python with [FastAPI](https://fastapi.tiangolo.com/) a
 
 It's an opensource project opened to contributions, it misses frontend developments for example.
 
+It also can be used as a FastAPI with OAuth2 + MongoDB boilerplate
+
 The project is managed through Jira contact me through [GitHub](https://github.com/RobsOnWaves) if you want to get involved in the roadmap.
 
 The code is PEP8 compliant and scanned with Sonarlint.
@@ -31,7 +33,7 @@ For all uses you should download the stacked apps and init files from GitHub
 
 1. Starting the service
 
-Download the content of the folder [stacked_apps](https://github.com/RobsOnWaves/ged-handler/tree/GED-38-create-a-readme-on-how-to-launch-the-app-with-docker-compose-and-how-to-use-it/DevOps/apps/stacked_apps) in a dedicated folder (for the example, we will keep that is in the repo "stacked_apps").
+Download the content of the folder [stacked_apps](https://github.com/RobsOnWaves/ged-handler/tree/master/DevOps/apps/stacked_apps) in a dedicated folder (for the example, we will keep that is in the repo "stacked_apps").
 
 The content of your dedicated folder should look like this:
 	
