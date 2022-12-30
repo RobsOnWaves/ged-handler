@@ -24,7 +24,7 @@ It also can be used as a FastAPI with OAuth2 + MongoDB boilerplate
 
 The project is managed through Jira contact me through [GitHub](https://github.com/RobsOnWaves) if you want to get involved in the roadmap.
 
-The code is PEP8 compliant and scanned with Sonarlint.
+The code is PEP8 compliant, scanned with Sonarlint in PyCharm and linked to SonarCloud.
 
 # Using the Docker image 
 For all uses you should download the stacked apps and init files from GitHub
@@ -194,6 +194,7 @@ The code is object-oriented.
 - Python
 - PyCharm
 - Sonarlint
+- SonarCloud
 - PEP8 compliance
 
 ### Toys that I didn't bring to the project for now but I'm planning to bring: 
