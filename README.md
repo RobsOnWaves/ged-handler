@@ -20,6 +20,8 @@ GED-Handler is written in Python with [FastAPI](https://fastapi.tiangolo.com/) a
 
 It's an opensource project opened to contributions, it misses frontend developments for example.
 
+It also can be used as a FastAPI with OAuth2 + MongoDB boilerplate
+
 The project is managed through Jira contact me through [GitHub](https://github.com/RobsOnWaves) if you want to get involved in the roadmap.
 
 The code is PEP8 compliant and scanned with Sonarlint.
