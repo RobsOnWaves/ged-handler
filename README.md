@@ -26,6 +26,8 @@ The project is managed through Jira contact me through [GitHub](https://github.c
 
 The code is PEP8 compliant, scanned with Sonarlint in PyCharm and linked to SonarCloud.
 
+[![SonarCloud](https://sonarcloud.io/images/project_badges/sonarcloud-white.svg)](https://sonarcloud.io/summary/new_code?id=RobsOnWaves_ged-handler)
+
 # Using the Docker image 
 For all uses you should download the stacked apps and init files from GitHub
 
