@@ -1,0 +1,136 @@
+[
+{
+    "node_type": "person",
+    "ged_id": "@I1@",
+    "name": {
+        "given_names": [
+            "kookoo"
+        ],
+        "family_name": "coconut"
+    },
+    "sex": "male",
+    "birth": {
+        "date_info": {
+            "date": "1950-06-06",
+            "date_type": "full_date"
+        },
+        "place": "FORCALQUIER,France"
+    },
+    "fams": [
+        "@F0@"
+    ]
+},
+{
+    "node_type": "person",
+    "ged_id": "@I2@",
+    "name": {
+        "given_names": [
+            "kiki"
+        ],
+        "family_name": "banana"
+    },
+    "sex": "female",
+    "birth": {
+        "date_info": {
+            "date": "1950-02-02",
+            "date_type": "full_date"
+        },
+        "place": "Orléansville,Algérie"
+    },
+    "death": {
+        "date_info": {
+            "date": "1998-12-07",
+            "date_type": "full_date"
+        },
+        "place": "TOULOUSE,FRANCE, METROPOLITAN"
+    },
+    "note": "dummy note",
+    "fams": [
+        "@F0@"
+    ]
+},
+{
+    "node_type": "person",
+    "ged_id": "@I3@",
+    "name": {
+        "given_names": [
+            "Tristane",
+            "ducoin"
+        ],
+        "family_name": "Le Breton"
+    },
+    "sex": "female",
+    "birth": {
+        "date_info": {
+            "date": "1950-03-07",
+            "date_type": "full_date"
+        },
+        "place": "TUNIS,Tunisie"
+    },
+    "death": {
+        "date_info": {
+            "date": "2019-02-12",
+            "date_type": "full_date"
+        },
+        "place": "Toulouse,France"
+    },
+    "fams": [
+        "@F1@"
+    ]
+},
+{
+    "node_type": "person",
+    "ged_id": "@I4@",
+    "name": {
+        "given_names": [
+            "Tristan",
+            "ducoin"
+        ],
+        "family_name": "Le Breton"
+    },
+    "sex": "male",
+    "birth": {
+        "date_info": {
+            "date": "1950-03-07",
+            "date_type": "full_date"
+        },
+        "place": "TUNIS,Tunisie"
+    },
+    "death": {
+        "date_info": {
+            "date": "2019-02-12",
+            "date_type": "full_date"
+        },
+        "place": "Toulouse,France"
+    },
+    "fams": [
+        "@F1@"
+    ],
+    "famc": [
+        "@F0@"
+    ]
+},
+{
+    "node_type": "family",
+    "ged_id": "@F0@",
+    "husband": [
+        "@I1@"
+    ],
+    "wife": [
+        "@I2@"
+    ],
+    "children": [
+        "@I4@"
+    ]
+},
+{
+    "node_type": "family",
+    "ged_id": "@F1@",
+    "husband": [
+        "@I4@"
+    ],
+    "wife": [
+        "@I3@"
+    ]
+}
+]

@@ -6,6 +6,7 @@ from enum import Enum
 from fastapi import Depends, FastAPI, HTTPException, status, Form, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -66,6 +67,19 @@ code at: [GitHub GED-Handler repo](https://github.com/RobsOnWaves/ged-handler))
 """, title="GED-Handler")
 
 
+origins = [
+    "http://localhost:3000",
+    "http://localhost:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 def el_parametrizor(mode_debug=False):
     if mode_debug:
         os.environ['URL_MONGO'] = "localhost:27017"
@@ -75,7 +89,7 @@ def el_parametrizor(mode_debug=False):
         os.environ['PWD_MONGO'] = "rootmongopwd"
 
 
-el_parametrizor(False)
+el_parametrizor(True)
 
 mongo_handler = MongoDbGed(address=os.environ['URL_MONGO'], user=os.environ['USR_MONGO'],
                            password=os.environ['PWD_MONGO'])
