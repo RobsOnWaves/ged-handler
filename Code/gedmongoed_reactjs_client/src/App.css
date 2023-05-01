@@ -36,3 +36,27 @@
     transform: rotate(360deg);
   }
 }
+
+.tree-col {
+  height:   100vh;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 100px); /* Calcule la hauteur en fonction de la hauteur de la fenêtre */
+}
+
+main > * {
+  flex: 1; /* Permet à chaque enfant de prendre autant d'espace que possible */
+}
+
+.my-component {
+  width: 100%; /* Prend toute la largeur disponible */
+  height: 100%; /* Prend toute la hauteur disponible */
+}
+
+
+#treeWrapper {
+  min-height: 500px; /* Remplacez 500px par la hauteur minimale souhaitée */
+}
