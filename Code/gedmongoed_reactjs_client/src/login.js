@@ -49,9 +49,9 @@ const LoginForm = () => {
 
   return (
 
-    <Container>
+    <Container fluid>
       <Row className="justify-content-center mt-5">
-        <Col md={6}>
+        <Col md={6} style={{ height: '100%' }}>
           <h2 className="text-center">Login</h2>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
