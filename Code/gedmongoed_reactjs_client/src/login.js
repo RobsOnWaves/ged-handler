@@ -5,6 +5,7 @@ import { Container, Row, Col, Form, Button } from 'react-bootstrap';
 import { API_BASE_URL } from './config';
 
 import OrgChart from './treeview'
+import OrgChart2 from './treeviewd3'
 import qs from 'qs';
 
 const LoginForm = () => {
@@ -43,6 +44,7 @@ const LoginForm = () => {
     return (
       <React.StrictMode>
         <OrgChart />
+        <OrgChart2 />
       </React.StrictMode>
     )
   }

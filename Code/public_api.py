@@ -80,6 +80,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 def el_parametrizor(mode_debug=False):
     if mode_debug:
         os.environ['URL_MONGO'] = "localhost:27017"
