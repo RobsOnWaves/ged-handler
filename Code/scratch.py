@@ -11,12 +11,12 @@ def extract_weights2(description):
     weights = {'>750 mil': '', '750 mil': '', '585 mil': '', '375 mil': ''}
 
     # Extraire toutes les parties de la description contenant des informations de poids
-    weight_parts = re.findall(r"(superieur a 750 mil|750 mil|585 mil|375 mil) = (\d+\.?\d*) g", description)
+    weight_parts = re.findall(r"(superieur a 750 mil|750 mil|585 mil|375 mil|Superieur a 750 mil) = (\d+\.?\d*) g", description)
 
     # Parcourir les parties extraites et attribuer les poids aux catégories correspondantes
     for part in weight_parts:
         category, weight = part
-        if category == 'superieur a 750 mil':
+        if category == 'superieur a 750 mil' or category == 'Superieur a 750 mil':
             weights['>750 mil'] = weight
         elif category == '750 mil':
             weights['750 mil'] = weight
