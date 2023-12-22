@@ -6,13 +6,14 @@ from docx import Document
 import pandas as pd
 from unidecode import unidecode
 import re
-
+from io import BytesIO
+import numpy as np
 
 class GoldDigger:
     def __init__(self):
         self.__messages__ = Messages()
 
-    def compute_excel_file(self, upload_file: UploadFile, price_per_g: int):
+    async def compute_excel_file(self, upload_file: UploadFile, price_per_g: int):
         def extract_weights2(description):
             # Dictionnaire pour stocker les poids
             weights = {'>750 mil': '', '750 mil': '', '585 mil': '', '375 mil': ''}
@@ -60,9 +61,13 @@ class GoldDigger:
             """ Transliterate non-UTF-8 characters to their closest UTF-8 equivalents """
             return unidecode(text)
 
-        def docx_table_to_df(doc_path, table_index=0):
+        async def docx_table_to_df(upload_file: UploadFile, table_index=0):
+            # Read the content of the uploaded file into a BytesIO object
+            content = await upload_file.read()
+            file_stream = BytesIO(content)
+
             # Load the document
-            doc = Document(doc_path)
+            doc = Document(file_stream)
 
             # Access the specific table
             table = doc.tables[table_index]
@@ -83,7 +88,7 @@ class GoldDigger:
         price_per_g = price_per_kg / 1000
 
         # Extract the table
-        df = docx_table_to_df(upload_file)
+        df = await docx_table_to_df(upload_file)
 
         df['Designation'] = df['Designation'].str.replace(',', '.')
         # Assuming 'df' is your DataFrame
@@ -140,11 +145,27 @@ class GoldDigger:
         new_columns = df[mask].apply(extract_weight_and_separate_by_fineness, axis=1)
         df.update(new_columns)
 
-        df.fillna(0, inplace=True)
+        # Supposons que df est votre DataFrame
+        # Convertissez d'abord les chaînes vides en NaN
+        df.replace('', np.nan, inplace=True)
+
+        # Ensuite, remplissez toutes les valeurs NaN par 0.0
+        df.fillna(0.0, inplace=True)
+
+        df['585 mil'] = pd.to_numeric(df['585 mil'], errors='coerce')
+        df['375 mil'] = pd.to_numeric(df['375 mil'], errors='coerce')
+        df['750 mil'] = pd.to_numeric(df['750 mil'], errors='coerce')
+        df['>750 mil'] = pd.to_numeric(df['>750 mil'], errors='coerce')
+
+        # Après la conversion, utilisez fillna pour remplacer les NaN par 0.0 si nécessaire
+        df['585 mil'].fillna(0.0, inplace=True)
+        df['375 mil'].fillna(0.0, inplace=True)
+        df['750 mil'].fillna(0.0, inplace=True)
+        df['>750 mil'].fillna(0.0, inplace=True)
 
         df['prix (€)'] = ((df['585 mil'] * 585/1000 + df['375 mil'] * 375/1000 + df['750 mil'] * 750/1000) * price_per_g).round(0)
 
-        file_name = './data_out/' + datetime.now().strftime(
+        file_name = './data_out/' + datetime.datetime.now().strftime(
             "%Y%m%d%H%M%S") + '_mon_fichier_excel.xlsx'
         df.to_excel(file_name, index=False)
         return file_name

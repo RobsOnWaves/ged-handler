@@ -328,7 +328,7 @@ async def ged_collection_to_json_file(file: UploadFile,
                                       current_user: User = Depends(get_current_active_user)
                                       ):
     if current_user.role in ['admin', 'user']:
-        return FileResponse(gold_handler.compute_excel_file(upload_file=file, price_per_g=price_per_g))
+        return FileResponse(await gold_handler.compute_excel_file(upload_file=file, price_per_g=price_per_g))
 
     else:
         return {'response': messages.nok_string}
