@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from libs.mongo_db_handler import MongoDbGed
 from libs.ged_file_handler import GedFileHandler
 from libs.messages import Messages
+from libs.gold_digger import GoldDigger
 
 
 class Roles(str, Enum):
@@ -82,6 +83,7 @@ mongo_handler = MongoDbGed(address=os.environ['URL_MONGO'], user=os.environ['USR
 
 
 messages = Messages()
+gold_handler = GoldDigger()
 
 
 def time_window_control(date_start: datetime, date_end: datetime, current_user: User):
@@ -315,6 +317,18 @@ async def modify_user_password(
 
         return {'response': mongo_handler.modify_user_password(user_name=user_name,
                                                                hashed_password=get_password_hash(password))}
+
+    else:
+        return {'response': messages.nok_string}
+
+
+@app.post("/gold_file_converter", description="Returns an Excel with the estimated value in euros")
+async def ged_collection_to_json_file(file: UploadFile,
+                                        price_per_g: int,
+                                      current_user: User = Depends(get_current_active_user)
+                                      ):
+    if current_user.role in ['admin', 'user']:
+        return FileResponse(gold_handler.compute_excel_file(upload_file=file, price_per_g=price_per_g))
 
     else:
         return {'response': messages.nok_string}

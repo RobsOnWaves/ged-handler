@@ -15,6 +15,16 @@ class MongoDbGed:
         self.__mongo_client__ = MongoClient(self.__connection_string__)
         self.__messages__ = Messages()
 
+    def get_gold_coeffs(self):
+        db = self.__mongo_client__.gold_coeffs
+
+        try:
+            gold_coeffs = db["gold_coeffs"]
+            return {"collection_names": gold_coeffs}
+
+        except Exception as e:
+            return "MongoDB error Exception: " + str(e)
+
     @staticmethod
     def from_ged_dict_to_mongodb_dict(ged_handler: GedFileHandler = GedFileHandler(),
                                       ged_list_of_dict=None):
