@@ -13,6 +13,7 @@ from libs.mongo_db_handler import MongoDbGed
 from libs.ged_file_handler import GedFileHandler
 from libs.messages import Messages
 from libs.gold_digger import GoldDigger
+from fastapi.middleware.cors import CORSMiddleware
 
 
 class Roles(str, Enum):
@@ -177,6 +178,16 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+# Configurez le middleware CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080"],  # Les origines autorisées, vous pouvez utiliser ["*"] pour le développement
+    allow_credentials=True,
+    allow_methods=["*"],  # Les méthodes HTTP autorisées
+    allow_headers=["*"],  # Les en-têtes HTTP autorisés
+)
 
 
 @app.get("/")
