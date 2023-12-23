@@ -161,9 +161,6 @@ class GoldDigger:
             "%Y%m%d%H%M%S") + '_mon_fichier_excel.xlsx'
         #df.to_excel(file_name, index=False, sheet_name='Sheet1'
 
-        # Assurez-vous que 'file_name' contient le chemin vers votre fichier Excel
-        file_name = 'path_to_your_file.xlsx'
-
         # Écrivez votre DataFrame dans le fichier Excel
         df.to_excel(file_name, index=False, sheet_name='Sheet1')
 
