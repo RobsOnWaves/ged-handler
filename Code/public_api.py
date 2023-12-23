@@ -324,11 +324,14 @@ async def modify_user_password(
 
 @app.post("/gold_file_converter", description="Returns an Excel with the estimated value in euros")
 async def ged_collection_to_json_file(file: UploadFile,
-                                        price_per_g: int,
+                                        price_per_kg: int,
                                       current_user: User = Depends(get_current_active_user)
                                       ):
     if current_user.role in ['admin', 'user']:
-        return FileResponse(await gold_handler.compute_excel_file(upload_file=file, price_per_g=price_per_g))
+        coeffs = mongo_handler.get_gold_coeffs()
+        return FileResponse(await gold_handler.compute_excel_file(upload_file=file,
+                                                                  price_per_kg=price_per_kg,
+                                                                  gold_coeffs=coeffs))
 
     else:
         return {'response': messages.nok_string}

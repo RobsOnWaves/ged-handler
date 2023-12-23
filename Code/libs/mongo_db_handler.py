@@ -19,8 +19,8 @@ class MongoDbGed:
         db = self.__mongo_client__.gold_coeffs
 
         try:
-            gold_coeffs = db["gold_coeffs"]
-            return {"collection_names": gold_coeffs}
+            gold_coeffs = db["gold_coeffs"].find_one()
+            return gold_coeffs
 
         except Exception as e:
             return "MongoDB error Exception: " + str(e)
