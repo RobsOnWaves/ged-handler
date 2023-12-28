@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from libs.mongo_db_handler import MongoDbGed
 from libs.ged_file_handler import GedFileHandler
 from libs.messages import Messages
+from libs.gold_digger import GoldDigger
+from fastapi.middleware.cors import CORSMiddleware
 
 
 class Roles(str, Enum):
@@ -82,6 +84,7 @@ mongo_handler = MongoDbGed(address=os.environ['URL_MONGO'], user=os.environ['USR
 
 
 messages = Messages()
+gold_handler = GoldDigger()
 
 
 def time_window_control(date_start: datetime, date_end: datetime, current_user: User):
@@ -175,6 +178,16 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+# Configurez le middleware CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080", "https://frontpreprod.exsilicium.robsonwaves.rocks"],  # Les origines autorisées, vous pouvez utiliser ["*"] pour le développement
+    allow_credentials=True,
+    allow_methods=["*"],  # Les méthodes HTTP autorisées
+    allow_headers=["*"],  # Les en-têtes HTTP autorisés
+)
 
 
 @app.get("/")
@@ -315,6 +328,21 @@ async def modify_user_password(
 
         return {'response': mongo_handler.modify_user_password(user_name=user_name,
                                                                hashed_password=get_password_hash(password))}
+
+    else:
+        return {'response': messages.nok_string}
+
+
+@app.post("/gold_file_converter", description="Returns an Excel with the estimated value in euros")
+async def ged_collection_to_json_file(file: UploadFile,
+                                        price_per_kg: int,
+                                      current_user: User = Depends(get_current_active_user)
+                                      ):
+    if current_user.role in ['admin', 'user']:
+        coeffs = mongo_handler.get_gold_coeffs()
+        return FileResponse(await gold_handler.compute_excel_file(upload_file=file,
+                                                                  price_per_kg=price_per_kg,
+                                                                  gold_coeffs=coeffs))
 
     else:
         return {'response': messages.nok_string}
