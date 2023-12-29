@@ -137,7 +137,7 @@ class GoldDigger:
 
         return pd.Series(weights)
 
-    async def compute_excel_file(self, upload_file: UploadFile, price_per_kg: int, gold_coeffs: dict):
+    async def compute_excel_file(self, upload_file: UploadFile, price_per_kg: int, gold_coeffs: dict, output_file: str):
 
         price_per_g = price_per_kg / 1000
 
@@ -206,10 +206,10 @@ class GoldDigger:
             "%Y%m%d%H%M%S") + '_mon_fichier_excel.xlsx'
 
         # Écrivez votre DataFrame dans le fichier Excel
-        df.to_excel(file_name, index=False, sheet_name='Sheet1')
+        df.to_excel(output_file, index=False, sheet_name='Sheet1')
 
         # Chargez le fichier Excel pour la mise en forme avec openpyxl
-        book = load_workbook(file_name)
+        book = load_workbook(output_file)
         sheet = book['Sheet1']
 
         # Ajustement de la largeur des colonnes autres que 'Designation'
@@ -247,7 +247,7 @@ class GoldDigger:
                     cell.alignment = alignment_center
 
         # Sauvegardez le fichier après la mise en forme
-        book.save(file_name)
+        book.save(output_file)
         book.close()
 
-        return file_name
+        return output_file
