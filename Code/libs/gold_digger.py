@@ -18,6 +18,74 @@ class GoldDigger:
         self.max_length = 1000
         self.timeout_duration = 60
 
+    async def docx_table_to_df(self, upload_file: UploadFile, table_index=0):
+        # Read the content of the uploaded file into a BytesIO object
+        content = await upload_file.read()
+        file_stream = BytesIO(content)
+
+        # Load the document
+        doc = Document(file_stream)
+
+        # Access the specific table
+        table = doc.tables[table_index]
+
+        # Extract and clean data from the table
+        data = [[self.clean_text(cell.text) for cell in row.cells] for row in table.rows]
+
+        # Create a DataFrame
+        df = pd.DataFrame(data)
+
+        # Optionally, set the first row as the header
+        df.columns = df.iloc[0]
+        df = df.drop(0)
+
+        return df
+
+    def clean_text(self, text):
+        """ Transliterate non-UTF-8 characters to their closest UTF-8 equivalents """
+        return unidecode(text)
+
+    def extract_weights2(self, description):
+
+        class TimeoutException(Exception):
+            pass
+
+        def timeout_handler():
+            raise TimeoutException()
+
+        # Dictionnaire pour stocker les poids
+        weights = {'>750 mil': '', '750 mil': '', '585 mil': '', '375 mil': ''}
+
+        if len(description) > self.max_length:
+            raise ValueError("Entry too long")
+
+
+        timer = threading.Timer(self.timeout_duration, timeout_handler)
+        try:
+            timer.start()
+            weight_parts = re.findall(
+                r"(superieur a 750 mil|750 mil|585 mil|375 mil|Superieur a 750 mil) = (\d+\.?\d*) g", description)
+
+        except TimeoutException:
+            return "Timeout atteint pour l'expression régulière."
+        finally:
+            # Arrête le timer
+            timer.cancel()
+
+        # Parcourir les parties extraites et attribuer les poids aux catégories correspondantes
+        for part in weight_parts:
+            category, weight = part
+            if category == 'superieur a 750 mil' or category == 'Superieur a 750 mil':
+                weights['>750 mil'] = weight
+            elif category == '750 mil':
+                weights['750 mil'] = weight
+            elif category == '585 mil':
+                weights['585 mil'] = weight
+            elif category == '375 mil':
+                weights['375 mil'] = weight
+
+        return weights
+
     def extract_weight_and_separate_by_fineness(self, row):
 
         class TimeoutException(Exception):
@@ -68,59 +136,10 @@ class GoldDigger:
 
     async def compute_excel_file(self, upload_file: UploadFile, price_per_kg: int, gold_coeffs: dict):
 
-        def extract_weights2(description):
-            # Dictionnaire pour stocker les poids
-            weights = {'>750 mil': '', '750 mil': '', '585 mil': '', '375 mil': ''}
-
-            # Extraire toutes les parties de la description contenant des informations de poids
-            weight_parts = re.findall(
-                r"(superieur a 750 mil|750 mil|585 mil|375 mil|Superieur a 750 mil) = (\d+\.?\d*) g", description)
-
-            # Parcourir les parties extraites et attribuer les poids aux catégories correspondantes
-            for part in weight_parts:
-                category, weight = part
-                if category == 'superieur a 750 mil' or category == 'Superieur a 750 mil':
-                    weights['>750 mil'] = weight
-                elif category == '750 mil':
-                    weights['750 mil'] = weight
-                elif category == '585 mil':
-                    weights['585 mil'] = weight
-                elif category == '375 mil':
-                    weights['375 mil'] = weight
-
-            return weights
-
-        def clean_text(text):
-            """ Transliterate non-UTF-8 characters to their closest UTF-8 equivalents """
-            return unidecode(text)
-
-        async def docx_table_to_df(upload_file: UploadFile, table_index=0):
-            # Read the content of the uploaded file into a BytesIO object
-            content = await upload_file.read()
-            file_stream = BytesIO(content)
-
-            # Load the document
-            doc = Document(file_stream)
-
-            # Access the specific table
-            table = doc.tables[table_index]
-
-            # Extract and clean data from the table
-            data = [[clean_text(cell.text) for cell in row.cells] for row in table.rows]
-
-            # Create a DataFrame
-            df = pd.DataFrame(data)
-
-            # Optionally, set the first row as the header
-            df.columns = df.iloc[0]
-            df = df.drop(0)
-
-            return df
-
         price_per_g = price_per_kg / 1000
 
         # Extract the table
-        df = await docx_table_to_df(upload_file)
+        df = await self.docx_table_to_df(upload_file)
 
         df['Designation'] = df['Designation'].str.replace(',', '.')
 
@@ -131,7 +150,7 @@ class GoldDigger:
 
         # Appliquer la fonction d'extraction à chaque ligne
         for index, row in df.iterrows():
-            weight_info = extract_weights2(row['Designation'])
+            weight_info = self.extract_weights2(row['Designation'])
             for key in weight_info:
                 df.at[index, key] = weight_info[key]
 
