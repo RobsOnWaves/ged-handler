@@ -1,4 +1,3 @@
-from libs.mongo_db_handler import MongoDbGed
 from libs.messages import Messages
 from fastapi import Depends, FastAPI, HTTPException, status, Form, UploadFile
 import datetime
@@ -9,117 +8,165 @@ import re
 from io import BytesIO
 import numpy as np
 from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment
+import threading
 
 class GoldDigger:
     def __init__(self):
         self.__messages__ = Messages()
+        self.__max_length__ = 1000
+        self.__timeout_duration__ = 60
+        self.__sup750__ = '>750 mil'
+        self.__k750__ = '750 mil'
+        self.__k585__ = '585 mil'
+        self.__k375__ = '375 mil'
+        self.__prix_bas__ = 'prix (€) bas'
+        self.__prix_haut__ = 'prix (€) haut'
+        
+    async def docx_table_to_df(self, upload_file: UploadFile, table_index=0):
+        # Read the content of the uploaded file into a BytesIO object
+        content = await upload_file.read()
+        file_stream = BytesIO(content)
 
-    async def compute_excel_file(self, upload_file: UploadFile, price_per_kg: int, gold_coeffs: dict):
-        def extract_weight_and_separate_by_fineness(row):
-            # Initial setup for different fineness categories
-            weights = {'>750 mil': None, '750 mil': None, '585 mil': None, '375 mil': None}
+        # Load the document
+        doc = Document(file_stream)
 
-            # Regular expressions for finding weight and fineness
-            weight_pattern = re.compile(r'(\d+(?:\.\d+)?)\s*g')
-            fineness_pattern = re.compile(r'(\d{3,4})\s*mil', re.IGNORECASE)
-            superior_pattern = re.compile(r'superieur a\s*(\d+)\s*mil', re.IGNORECASE)
+        # Access the specific table
+        table = doc.tables[table_index]
 
-            # Extracting weight
-            weight_match = weight_pattern.search(row['Designation'])
-            if weight_match:
-                weight = float(weight_match.group(1))
+        # Extract and clean data from the table
+        data = [[self.clean_text(cell.text) for cell in row.cells] for row in table.rows]
 
-                # Determining fineness category and assigning weight
-                fineness_match = fineness_pattern.search(row['Designation'])
-                superior_match = superior_pattern.search(row['Designation'])
-                if fineness_match and not superior_match:
-                    fineness = fineness_match.group(1) + ' mil'
-                    weights[fineness] = weight
-                elif superior_match:
-                    fineness = ">" + superior_match.group(1) + ' mil'
-                    weights[fineness] = weight
+        # Create a DataFrame
+        df = pd.DataFrame(data)
 
-            return pd.Series(weights)
+        # Optionally, set the first row as the header
+        df.columns = df.iloc[0]
+        df = df.drop(0)
+
+        return df
+
+    def clean_text(self, text):
+        """ Transliterate non-UTF-8 characters to their closest UTF-8 equivalents """
+        return unidecode(text)
+
+    def extract_weights2(self, description):
+
+        class TimeoutException(Exception):
+            pass
+
+        def timeout_handler():
+            raise TimeoutException()
+
+        # Dictionnaire pour stocker les poids
+        weights = {self.__sup750__ : '', self.__k750__: '', self.__k585__: '', self.__k375__: ''}
+
+        if len(description) > self.__max_length__ :
+            raise ValueError("Entry too long")
 
 
-        def extract_weights2(description):
-            # Dictionnaire pour stocker les poids
-            weights = {'>750 mil': '', '750 mil': '', '585 mil': '', '375 mil': ''}
-
-            # Extraire toutes les parties de la description contenant des informations de poids
+        timer = threading.Timer(self.__timeout_duration__ , timeout_handler)
+        try:
+            timer.start()
             weight_parts = re.findall(
                 r"(superieur a 750 mil|750 mil|585 mil|375 mil|Superieur a 750 mil) = (\d+\.?\d*) g", description)
 
-            # Parcourir les parties extraites et attribuer les poids aux catégories correspondantes
-            for part in weight_parts:
-                category, weight = part
-                if category == 'superieur a 750 mil' or category == 'Superieur a 750 mil':
-                    weights['>750 mil'] = weight
-                elif category == '750 mil':
-                    weights['750 mil'] = weight
-                elif category == '585 mil':
-                    weights['585 mil'] = weight
-                elif category == '375 mil':
-                    weights['375 mil'] = weight
+        except TimeoutException:
+            return "Timeout atteint pour l'expression régulière."
+        finally:
+            # Arrête le timer
+            timer.cancel()
 
-            return weights
+        # Parcourir les parties extraites et attribuer les poids aux catégories correspondantes
+        for part in weight_parts:
+            category, weight = part
+            if category == 'superieur a 750 mil' or category == 'Superieur a 750 mil':
+                weights[self.__sup750__ ] = weight
+            elif category == self.__k750__:
+                weights[self.__k750__] = weight
+            elif category == self.__k585__:
+                weights[self.__k585__] = weight
+            elif category == self.__k375__:
+                weights[self.__k375__] = weight
 
-        def clean_text(text):
-            """ Transliterate non-UTF-8 characters to their closest UTF-8 equivalents """
-            return unidecode(text)
+        return weights
 
-        async def docx_table_to_df(upload_file: UploadFile, table_index=0):
-            # Read the content of the uploaded file into a BytesIO object
-            content = await upload_file.read()
-            file_stream = BytesIO(content)
+    def extract_weight_and_separate_by_fineness(self, row):
 
-            # Load the document
-            doc = Document(file_stream)
+        class TimeoutException(Exception):
+            pass
 
-            # Access the specific table
-            table = doc.tables[table_index]
+        def timeout_handler():
+            raise TimeoutException()
 
-            # Extract and clean data from the table
-            data = [[clean_text(cell.text) for cell in row.cells] for row in table.rows]
+        # Initial setup for different fineness categories
+        weights = {self.__sup750__ : None, self.__k750__: None, self.__k585__: None, self.__k375__: None}
 
-            # Create a DataFrame
-            df = pd.DataFrame(data)
+        if len(row['Designation']) > self.__max_length__ :
+            raise ValueError("L'entrée est trop longue.")
 
-            # Optionally, set the first row as the header
-            df.columns = df.iloc[0]
-            df = df.drop(0)
+        # Regular expressions for finding weight and fineness
+        weight_pattern = re.compile(r'(\d+(?:\.\d+)?)\s*g')
+        fineness_pattern = re.compile(r'(\d{3,4})\s*mil', re.IGNORECASE)
+        superior_pattern = re.compile(r'superieur a\s*(\d+)\s*mil', re.IGNORECASE)
 
-            return df
+        # Extracting weight
+        # Crée un timer pour le timeout
+        timer = threading.Timer(self.__timeout_duration__ , timeout_handler)
+        try:
+            timer.start()
+            # Applique l'expression régulière
+            weight_match = weight_pattern.search(row['Designation'])
+            #weight_match = weight_match.group(0) if weight_match else None
+        except TimeoutException:
+            return "Timeout atteint pour l'expression régulière."
+        finally:
+            # Arrête le timer
+            timer.cancel()
+
+        if weight_match:
+            weight = float(weight_match.group(1))
+
+            # Determining fineness category and assigning weight
+            fineness_match = fineness_pattern.search(row['Designation'])
+            superior_match = superior_pattern.search(row['Designation'])
+            if fineness_match and not superior_match:
+                fineness = fineness_match.group(1) + ' mil'
+                weights[fineness] = weight
+            elif superior_match:
+                fineness = ">" + superior_match.group(1) + ' mil'
+                weights[fineness] = weight
+
+        return pd.Series(weights)
+
+    async def compute_excel_file(self, upload_file: UploadFile, price_per_kg: int, gold_coeffs: dict, output_file: str):
 
         price_per_g = price_per_kg / 1000
 
         # Extract the table
-        df = await docx_table_to_df(upload_file)
+        df = await self.docx_table_to_df(upload_file)
 
         df['Designation'] = df['Designation'].str.replace(',', '.')
 
         df['Platine'] = df['Designation'].apply(lambda x: 'x' if 'platine' in x.lower() else "")
         # Créer des colonnes pour chaque titrage dans le DataFrame
-        for mil in ['>750 mil', '750 mil', '585 mil', '375 mil']:
+        for mil in [self.__sup750__ , self.__k750__, self.__k585__, self.__k375__]:
             df[mil] = None
 
         # Appliquer la fonction d'extraction à chaque ligne
         for index, row in df.iterrows():
-            weight_info = extract_weights2(row['Designation'])
+            weight_info = self.extract_weights2(row['Designation'])
             for key in weight_info:
                 df.at[index, key] = weight_info[key]
 
-
-        mask = df[['>750 mil', '750 mil', '585 mil', '375 mil']].isna() | (
-                    df[['>750 mil', '750 mil', '585 mil', '375 mil']] == '')
+        mask = df[[self.__sup750__ , self.__k750__, self.__k585__, self.__k375__]].isna() | (
+                    df[[self.__sup750__ , self.__k750__, self.__k585__, self.__k375__]] == '')
         # Example of usage
         # Assuming 'data' is your DataFrame loaded from the Excel file
 
         mask = mask.all(axis=1)
 
-        new_columns = df[mask].apply(extract_weight_and_separate_by_fineness, axis=1)
+        new_columns = df[mask].apply(self.extract_weight_and_separate_by_fineness, axis=1)
         df.update(new_columns)
 
         # Supposons que df est votre DataFrame
@@ -129,43 +176,42 @@ class GoldDigger:
         # Ensuite, remplissez toutes les valeurs NaN par 0.0
         df.fillna(0.0, inplace=True)
 
-        df['585 mil'] = pd.to_numeric(df['585 mil'], errors='coerce')
-        df['375 mil'] = pd.to_numeric(df['375 mil'], errors='coerce')
-        df['750 mil'] = pd.to_numeric(df['750 mil'], errors='coerce')
-        df['>750 mil'] = pd.to_numeric(df['>750 mil'], errors='coerce')
+        df[self.__k585__] = pd.to_numeric(df[self.__k585__], errors='coerce')
+        df[self.__k375__] = pd.to_numeric(df[self.__k375__], errors='coerce')
+        df[self.__k750__] = pd.to_numeric(df[self.__k750__], errors='coerce')
+        df[self.__sup750__ ] = pd.to_numeric(df[self.__sup750__ ], errors='coerce')
 
         # Après la conversion, utilisez fillna pour remplacer les NaN par 0.0 si nécessaire
-        df['585 mil'].fillna(0.0, inplace=True)
-        df['375 mil'].fillna(0.0, inplace=True)
-        df['750 mil'].fillna(0.0, inplace=True)
-        df['>750 mil'].fillna(0.0, inplace=True)
+        df[self.__k585__].fillna(0.0, inplace=True)
+        df[self.__k375__].fillna(0.0, inplace=True)
+        df[self.__k750__].fillna(0.0, inplace=True)
+        df[self.__sup750__ ].fillna(0.0, inplace=True)
 
-        df['prix (€) haut'] = ((price_per_g - gold_coeffs['offset_euros']/1000) * \
-                              ( df['585 mil'] * gold_coeffs['coeff_585_nume']/gold_coeffs['coeff_585_nume']
-                                + df['375 mil'] * gold_coeffs['coeff_375_nume']/gold_coeffs['coeff_375_nume']
-                                + df['750 mil'] * gold_coeffs['coeff_750_nume']/gold_coeffs['coeff_750_nume']
-                                + df['>750 mil'] * gold_coeffs['coeff_22up_nume']/gold_coeffs['coeff_22up_denum'])).round(0)
+        df[self.__prix_haut__] = ((price_per_g - gold_coeffs['offset_euros']/1000) * \
+                              ( df[self.__k585__] * gold_coeffs['coeff_585_nume']/gold_coeffs['coeff_585_nume']
+                                + df[self.__k375__] * gold_coeffs['coeff_375_nume']/gold_coeffs['coeff_375_nume']
+                                + df[self.__k750__] * gold_coeffs['coeff_750_nume']/gold_coeffs['coeff_750_nume']
+                                + df[self.__sup750__ ] * gold_coeffs['coeff_22up_nume']/gold_coeffs['coeff_22up_denum'])).round(0)
 
-        df['prix (€) bas'] = ((price_per_g - gold_coeffs['offset_euros']/1000) * \
-                              ( df['585 mil'] * gold_coeffs['coeff_585_nume']/gold_coeffs['coeff_585_nume']
-                                + df['375 mil'] * gold_coeffs['coeff_375_nume']/gold_coeffs['coeff_375_nume']
-                                + df['750 mil'] * gold_coeffs['coeff_750_nume']/gold_coeffs['coeff_750_nume']
-                                + df['>750 mil'] * gold_coeffs['coeff_22down_nume']/gold_coeffs['coeff_22down_denum'])).round(0)
+        df[self.__prix_bas__] = ((price_per_g - gold_coeffs['offset_euros']/1000) * \
+                              ( df[self.__k585__] * gold_coeffs['coeff_585_nume']/gold_coeffs['coeff_585_nume']
+                                + df[self.__k375__] * gold_coeffs['coeff_375_nume']/gold_coeffs['coeff_375_nume']
+                                + df[self.__k750__] * gold_coeffs['coeff_750_nume']/gold_coeffs['coeff_750_nume']
+                                + df[self.__sup750__ ] * gold_coeffs['coeff_22down_nume']/gold_coeffs['coeff_22down_denum'])).round(0)
 
-        df['prix (€) bas'] = df['prix (€) bas'].astype(object)
-        df['prix (€) haut'] = df['prix (€) haut'].astype(object)
-        df.loc[df['Platine'] == 'x', 'prix (€) haut'] = 'Platine'
-        df.loc[df['Platine'] == 'x', 'prix (€) bas'] = 'Platine'
+        df[self.__prix_bas__] = df[self.__prix_bas__].astype(object)
+        df[self.__prix_haut__] = df[self.__prix_haut__].astype(object)
+        df.loc[df['Platine'] == 'x', self.__prix_haut__] = 'Platine'
+        df.loc[df['Platine'] == 'x', self.__prix_bas__] = 'Platine'
         df.loc[df['Platine'] == 0, 'Platine'] = ''
         file_name = './data_out/' + datetime.datetime.now().strftime(
             "%Y%m%d%H%M%S") + '_mon_fichier_excel.xlsx'
-        #df.to_excel(file_name, index=False, sheet_name='Sheet1'
 
         # Écrivez votre DataFrame dans le fichier Excel
-        df.to_excel(file_name, index=False, sheet_name='Sheet1')
+        df.to_excel(output_file, index=False, sheet_name='Sheet1')
 
         # Chargez le fichier Excel pour la mise en forme avec openpyxl
-        book = load_workbook(file_name)
+        book = load_workbook(output_file)
         sheet = book['Sheet1']
 
         # Ajustement de la largeur des colonnes autres que 'Designation'
@@ -203,7 +249,7 @@ class GoldDigger:
                     cell.alignment = alignment_center
 
         # Sauvegardez le fichier après la mise en forme
-        book.save(file_name)
+        book.save(output_file)
         book.close()
 
-        return file_name
+        return output_file

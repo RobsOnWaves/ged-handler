@@ -14,6 +14,7 @@ class MongoDbGed:
         self.__connection_string__ = "mongodb://" + user + ":" + password + "@" + address
         self.__mongo_client__ = MongoClient(self.__connection_string__)
         self.__messages__ = Messages()
+        self.__exception_message__ = "MongoDB error Exception: "
 
     def get_gold_coeffs(self):
         db = self.__mongo_client__.gold_coeffs
@@ -23,7 +24,7 @@ class MongoDbGed:
             return gold_coeffs
 
         except Exception as e:
-            return "MongoDB error Exception: " + str(e)
+            return self.__exception_message__+ str(e)
 
     @staticmethod
     def from_ged_dict_to_mongodb_dict(ged_handler: GedFileHandler = GedFileHandler(),
@@ -173,7 +174,7 @@ class MongoDbGed:
                     end_cursor = True
 
         except Exception as e:
-            return "MongoDB error Exception: " + str(e)
+            return self.__exception_message__+ str(e)
 
         return users
 
@@ -227,7 +228,7 @@ class MongoDbGed:
             return {"collection_names": collection_names}
 
         except Exception as e:
-            return "MongoDB error Exception: " + str(e)
+            return self.__exception_message__+ str(e)
 
     def modify_user_password(self,
                              user_name: str,
