@@ -33,6 +33,7 @@ JSON_EXTENSION = ".json"
 class Token(BaseModel):
     access_token: str
     token_type: str
+    name: str
 
 
 class TokenData(BaseModel):
@@ -208,7 +209,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "name": user.full_name, "token_type": "bearer"}
 
 
 @app.get("/users/me/", response_model=User, description="Returns information about the current logged in user")
@@ -346,6 +347,11 @@ async def ged_collection_to_json_file(file: UploadFile,
 
     else:
         return {'response': messages.nok_string}
+
+
+@app.post("/logout")
+async def logout():
+    return {"message": "Disconnected, please log in again"}
 
 
 if __name__ == "__main__":
