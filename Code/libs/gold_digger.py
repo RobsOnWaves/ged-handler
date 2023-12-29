@@ -20,6 +20,8 @@ class GoldDigger:
         self.k750 = '750 mil'
         self.k585 = '585 mil'
         self.k375 = '375 mil'
+        self.prix_bas = 'prix (€) bas'
+        self.prix_haut = 'prix (€) haut'
         
     async def docx_table_to_df(self, upload_file: UploadFile, table_index=0):
         # Read the content of the uploaded file into a BytesIO object
@@ -185,22 +187,22 @@ class GoldDigger:
         df[self.k750].fillna(0.0, inplace=True)
         df[self.sup750].fillna(0.0, inplace=True)
 
-        df['prix (€) haut'] = ((price_per_g - gold_coeffs['offset_euros']/1000) * \
+        df[self.prix_haut] = ((price_per_g - gold_coeffs['offset_euros']/1000) * \
                               ( df[self.k585] * gold_coeffs['coeff_585_nume']/gold_coeffs['coeff_585_nume']
                                 + df[self.k375] * gold_coeffs['coeff_375_nume']/gold_coeffs['coeff_375_nume']
                                 + df[self.k750] * gold_coeffs['coeff_750_nume']/gold_coeffs['coeff_750_nume']
                                 + df[self.sup750] * gold_coeffs['coeff_22up_nume']/gold_coeffs['coeff_22up_denum'])).round(0)
 
-        df['prix (€) bas'] = ((price_per_g - gold_coeffs['offset_euros']/1000) * \
+        df[self.prix_bas] = ((price_per_g - gold_coeffs['offset_euros']/1000) * \
                               ( df[self.k585] * gold_coeffs['coeff_585_nume']/gold_coeffs['coeff_585_nume']
                                 + df[self.k375] * gold_coeffs['coeff_375_nume']/gold_coeffs['coeff_375_nume']
                                 + df[self.k750] * gold_coeffs['coeff_750_nume']/gold_coeffs['coeff_750_nume']
                                 + df[self.sup750] * gold_coeffs['coeff_22down_nume']/gold_coeffs['coeff_22down_denum'])).round(0)
 
-        df['prix (€) bas'] = df['prix (€) bas'].astype(object)
-        df['prix (€) haut'] = df['prix (€) haut'].astype(object)
-        df.loc[df['Platine'] == 'x', 'prix (€) haut'] = 'Platine'
-        df.loc[df['Platine'] == 'x', 'prix (€) bas'] = 'Platine'
+        df[self.prix_bas] = df[self.prix_bas].astype(object)
+        df[self.prix_haut] = df[self.prix_haut].astype(object)
+        df.loc[df['Platine'] == 'x', self.prix_haut] = 'Platine'
+        df.loc[df['Platine'] == 'x', self.prix_bas] = 'Platine'
         df.loc[df['Platine'] == 0, 'Platine'] = ''
         file_name = './data_out/' + datetime.datetime.now().strftime(
             "%Y%m%d%H%M%S") + '_mon_fichier_excel.xlsx'
