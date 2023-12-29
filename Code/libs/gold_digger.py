@@ -14,14 +14,14 @@ import threading
 class GoldDigger:
     def __init__(self):
         self.__messages__ = Messages()
-        self.max_length = 1000
-        self.timeout_duration = 60
-        self.sup750 = '>750 mil'
-        self.k750 = '750 mil'
-        self.k585 = '585 mil'
-        self.k375 = '375 mil'
-        self.prix_bas = 'prix (€) bas'
-        self.prix_haut = 'prix (€) haut'
+        self.__max_length__ = 1000
+        self.__timeout_duration__ = 60
+        self.__sup750__ = '>750 mil'
+        self.__k750__ = '750 mil'
+        self.__k585__ = '585 mil'
+        self.__k375__ = '375 mil'
+        self.__prix_bas__ = 'prix (€) bas'
+        self.__prix_haut__ = 'prix (€) haut'
         
     async def docx_table_to_df(self, upload_file: UploadFile, table_index=0):
         # Read the content of the uploaded file into a BytesIO object
@@ -59,13 +59,13 @@ class GoldDigger:
             raise TimeoutException()
 
         # Dictionnaire pour stocker les poids
-        weights = {self.sup750: '', self.k750: '', self.k585: '', self.k375: ''}
+        weights = {self.__sup750__ : '', self.__k750__: '', self.__k585__: '', self.__k375__: ''}
 
-        if len(description) > self.max_length:
+        if len(description) > self.__max_length__ :
             raise ValueError("Entry too long")
 
 
-        timer = threading.Timer(self.timeout_duration, timeout_handler)
+        timer = threading.Timer(self.__timeout_duration__ , timeout_handler)
         try:
             timer.start()
             weight_parts = re.findall(
@@ -81,13 +81,13 @@ class GoldDigger:
         for part in weight_parts:
             category, weight = part
             if category == 'superieur a 750 mil' or category == 'Superieur a 750 mil':
-                weights[self.sup750] = weight
-            elif category == self.k750:
-                weights[self.k750] = weight
-            elif category == self.k585:
-                weights[self.k585] = weight
-            elif category == self.k375:
-                weights[self.k375] = weight
+                weights[self.__sup750__ ] = weight
+            elif category == self.__k750__:
+                weights[self.__k750__] = weight
+            elif category == self.__k585__:
+                weights[self.__k585__] = weight
+            elif category == self.__k375__:
+                weights[self.__k375__] = weight
 
         return weights
 
@@ -100,9 +100,9 @@ class GoldDigger:
             raise TimeoutException()
 
         # Initial setup for different fineness categories
-        weights = {self.sup750: None, self.k750: None, self.k585: None, self.k375: None}
+        weights = {self.__sup750__ : None, self.__k750__: None, self.__k585__: None, self.__k375__: None}
 
-        if len(row['Designation']) > self.max_length:
+        if len(row['Designation']) > self.__max_length__ :
             raise ValueError("L'entrée est trop longue.")
 
         # Regular expressions for finding weight and fineness
@@ -112,7 +112,7 @@ class GoldDigger:
 
         # Extracting weight
         # Crée un timer pour le timeout
-        timer = threading.Timer(self.timeout_duration, timeout_handler)
+        timer = threading.Timer(self.__timeout_duration__ , timeout_handler)
         try:
             timer.start()
             # Applique l'expression régulière
@@ -150,7 +150,7 @@ class GoldDigger:
 
         df['Platine'] = df['Designation'].apply(lambda x: 'x' if 'platine' in x.lower() else "")
         # Créer des colonnes pour chaque titrage dans le DataFrame
-        for mil in [self.sup750, self.k750, self.k585, self.k375]:
+        for mil in [self.__sup750__ , self.__k750__, self.__k585__, self.__k375__]:
             df[mil] = None
 
         # Appliquer la fonction d'extraction à chaque ligne
@@ -159,8 +159,8 @@ class GoldDigger:
             for key in weight_info:
                 df.at[index, key] = weight_info[key]
 
-        mask = df[[self.sup750, self.k750, self.k585, self.k375]].isna() | (
-                    df[[self.sup750, self.k750, self.k585, self.k375]] == '')
+        mask = df[[self.__sup750__ , self.__k750__, self.__k585__, self.__k375__]].isna() | (
+                    df[[self.__sup750__ , self.__k750__, self.__k585__, self.__k375__]] == '')
         # Example of usage
         # Assuming 'data' is your DataFrame loaded from the Excel file
 
@@ -176,33 +176,33 @@ class GoldDigger:
         # Ensuite, remplissez toutes les valeurs NaN par 0.0
         df.fillna(0.0, inplace=True)
 
-        df[self.k585] = pd.to_numeric(df[self.k585], errors='coerce')
-        df[self.k375] = pd.to_numeric(df[self.k375], errors='coerce')
-        df[self.k750] = pd.to_numeric(df[self.k750], errors='coerce')
-        df[self.sup750] = pd.to_numeric(df[self.sup750], errors='coerce')
+        df[self.__k585__] = pd.to_numeric(df[self.__k585__], errors='coerce')
+        df[self.__k375__] = pd.to_numeric(df[self.__k375__], errors='coerce')
+        df[self.__k750__] = pd.to_numeric(df[self.__k750__], errors='coerce')
+        df[self.__sup750__ ] = pd.to_numeric(df[self.__sup750__ ], errors='coerce')
 
         # Après la conversion, utilisez fillna pour remplacer les NaN par 0.0 si nécessaire
-        df[self.k585].fillna(0.0, inplace=True)
-        df[self.k375].fillna(0.0, inplace=True)
-        df[self.k750].fillna(0.0, inplace=True)
-        df[self.sup750].fillna(0.0, inplace=True)
+        df[self.__k585__].fillna(0.0, inplace=True)
+        df[self.__k375__].fillna(0.0, inplace=True)
+        df[self.__k750__].fillna(0.0, inplace=True)
+        df[self.__sup750__ ].fillna(0.0, inplace=True)
 
-        df[self.prix_haut] = ((price_per_g - gold_coeffs['offset_euros']/1000) * \
-                              ( df[self.k585] * gold_coeffs['coeff_585_nume']/gold_coeffs['coeff_585_nume']
-                                + df[self.k375] * gold_coeffs['coeff_375_nume']/gold_coeffs['coeff_375_nume']
-                                + df[self.k750] * gold_coeffs['coeff_750_nume']/gold_coeffs['coeff_750_nume']
-                                + df[self.sup750] * gold_coeffs['coeff_22up_nume']/gold_coeffs['coeff_22up_denum'])).round(0)
+        df[self.__prix_haut__] = ((price_per_g - gold_coeffs['offset_euros']/1000) * \
+                              ( df[self.__k585__] * gold_coeffs['coeff_585_nume']/gold_coeffs['coeff_585_nume']
+                                + df[self.__k375__] * gold_coeffs['coeff_375_nume']/gold_coeffs['coeff_375_nume']
+                                + df[self.__k750__] * gold_coeffs['coeff_750_nume']/gold_coeffs['coeff_750_nume']
+                                + df[self.__sup750__ ] * gold_coeffs['coeff_22up_nume']/gold_coeffs['coeff_22up_denum'])).round(0)
 
-        df[self.prix_bas] = ((price_per_g - gold_coeffs['offset_euros']/1000) * \
-                              ( df[self.k585] * gold_coeffs['coeff_585_nume']/gold_coeffs['coeff_585_nume']
-                                + df[self.k375] * gold_coeffs['coeff_375_nume']/gold_coeffs['coeff_375_nume']
-                                + df[self.k750] * gold_coeffs['coeff_750_nume']/gold_coeffs['coeff_750_nume']
-                                + df[self.sup750] * gold_coeffs['coeff_22down_nume']/gold_coeffs['coeff_22down_denum'])).round(0)
+        df[self.__prix_bas__] = ((price_per_g - gold_coeffs['offset_euros']/1000) * \
+                              ( df[self.__k585__] * gold_coeffs['coeff_585_nume']/gold_coeffs['coeff_585_nume']
+                                + df[self.__k375__] * gold_coeffs['coeff_375_nume']/gold_coeffs['coeff_375_nume']
+                                + df[self.__k750__] * gold_coeffs['coeff_750_nume']/gold_coeffs['coeff_750_nume']
+                                + df[self.__sup750__ ] * gold_coeffs['coeff_22down_nume']/gold_coeffs['coeff_22down_denum'])).round(0)
 
-        df[self.prix_bas] = df[self.prix_bas].astype(object)
-        df[self.prix_haut] = df[self.prix_haut].astype(object)
-        df.loc[df['Platine'] == 'x', self.prix_haut] = 'Platine'
-        df.loc[df['Platine'] == 'x', self.prix_bas] = 'Platine'
+        df[self.__prix_bas__] = df[self.__prix_bas__].astype(object)
+        df[self.__prix_haut__] = df[self.__prix_haut__].astype(object)
+        df.loc[df['Platine'] == 'x', self.__prix_haut__] = 'Platine'
+        df.loc[df['Platine'] == 'x', self.__prix_bas__] = 'Platine'
         df.loc[df['Platine'] == 0, 'Platine'] = ''
         file_name = './data_out/' + datetime.datetime.now().strftime(
             "%Y%m%d%H%M%S") + '_mon_fichier_excel.xlsx'

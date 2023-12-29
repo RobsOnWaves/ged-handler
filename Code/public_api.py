@@ -241,10 +241,11 @@ async def create_user(user_name: str = Form(),
                       role: Roles = Form(),
                       current_user: User = Depends(get_current_active_user)):
     if current_user.role == "admin":
-        return {'response': mongo_handler.insert_user(user_name, full_name, email, get_password_hash(password),
-                                                      current_user.username, role)}
+        mongo_handler.insert_user(user_name, full_name, email, get_password_hash(password),
+                                  current_user.username, role)
+        return {'response': 'User created successfully'}
     else:
-        return {'response': messages.nok_string}
+        return {'response': 'Access denied'}
 
 
 @app.post("/ged_file", description="Uploading a ged-file to the database, restricted to admin privileges")
