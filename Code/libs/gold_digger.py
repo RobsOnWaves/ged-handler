@@ -9,40 +9,64 @@ import re
 from io import BytesIO
 import numpy as np
 from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment
+import threading
 
 class GoldDigger:
     def __init__(self):
         self.__messages__ = Messages()
+        self.max_length = 1000
+        self.timeout_duration = 60
+
+    def extract_weight_and_separate_by_fineness(self, row):
+
+        class TimeoutException(Exception):
+            pass
+
+        def timeout_handler():
+            raise TimeoutException()
+
+        # Initial setup for different fineness categories
+        weights = {'>750 mil': None, '750 mil': None, '585 mil': None, '375 mil': None}
+
+        if len(row['Designation']) > self.max_length:
+            raise ValueError("L'entrée est trop longue.")
+
+        # Regular expressions for finding weight and fineness
+        weight_pattern = re.compile(r'(\d+(?:\.\d+)?)\s*g')
+        fineness_pattern = re.compile(r'(\d{3,4})\s*mil', re.IGNORECASE)
+        superior_pattern = re.compile(r'superieur a\s*(\d+)\s*mil', re.IGNORECASE)
+
+        # Extracting weight
+        # Crée un timer pour le timeout
+        timer = threading.Timer(self.timeout_duration, timeout_handler)
+        try:
+            timer.start()
+            # Applique l'expression régulière
+            weight_match = weight_pattern.search(row['Designation'])
+            #weight_match = weight_match.group(0) if weight_match else None
+        except TimeoutException:
+            return "Timeout atteint pour l'expression régulière."
+        finally:
+            # Arrête le timer
+            timer.cancel()
+
+        if weight_match:
+            weight = float(weight_match.group(1))
+
+            # Determining fineness category and assigning weight
+            fineness_match = fineness_pattern.search(row['Designation'])
+            superior_match = superior_pattern.search(row['Designation'])
+            if fineness_match and not superior_match:
+                fineness = fineness_match.group(1) + ' mil'
+                weights[fineness] = weight
+            elif superior_match:
+                fineness = ">" + superior_match.group(1) + ' mil'
+                weights[fineness] = weight
+
+        return pd.Series(weights)
 
     async def compute_excel_file(self, upload_file: UploadFile, price_per_kg: int, gold_coeffs: dict):
-        def extract_weight_and_separate_by_fineness(row):
-            # Initial setup for different fineness categories
-            weights = {'>750 mil': None, '750 mil': None, '585 mil': None, '375 mil': None}
-
-            # Regular expressions for finding weight and fineness
-            weight_pattern = re.compile(r'(\d+(?:\.\d+)?)\s*g')
-            fineness_pattern = re.compile(r'(\d{3,4})\s*mil', re.IGNORECASE)
-            superior_pattern = re.compile(r'superieur a\s*(\d+)\s*mil', re.IGNORECASE)
-
-            # Extracting weight
-            weight_match = weight_pattern.search(row['Designation'])
-            if weight_match:
-                weight = float(weight_match.group(1))
-
-                # Determining fineness category and assigning weight
-                fineness_match = fineness_pattern.search(row['Designation'])
-                superior_match = superior_pattern.search(row['Designation'])
-                if fineness_match and not superior_match:
-                    fineness = fineness_match.group(1) + ' mil'
-                    weights[fineness] = weight
-                elif superior_match:
-                    fineness = ">" + superior_match.group(1) + ' mil'
-                    weights[fineness] = weight
-
-            return pd.Series(weights)
-
 
         def extract_weights2(description):
             # Dictionnaire pour stocker les poids
@@ -111,7 +135,6 @@ class GoldDigger:
             for key in weight_info:
                 df.at[index, key] = weight_info[key]
 
-
         mask = df[['>750 mil', '750 mil', '585 mil', '375 mil']].isna() | (
                     df[['>750 mil', '750 mil', '585 mil', '375 mil']] == '')
         # Example of usage
@@ -119,7 +142,7 @@ class GoldDigger:
 
         mask = mask.all(axis=1)
 
-        new_columns = df[mask].apply(extract_weight_and_separate_by_fineness, axis=1)
+        new_columns = df[mask].apply(self.extract_weight_and_separate_by_fineness, axis=1)
         df.update(new_columns)
 
         # Supposons que df est votre DataFrame
