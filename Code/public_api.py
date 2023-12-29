@@ -292,7 +292,8 @@ async def ged_collection_to_json_answer(file: UploadFile,
     if current_user.role in ['admin', 'user']:
 
         ged_handler = GedFileHandler()
-        ged_handler.from_file_to_list_of_dict_with_cleanup(file, path="tmp/")
+        safe_path = secure_file_path(file.filename)
+        ged_handler.from_file_to_list_of_dict_with_cleanup(file, path=safe_path)
         return ged_handler.listed_documents
 
     else:
