@@ -24,7 +24,11 @@ class Roles(str, Enum):
 
 # to get a string like this run:
 # openssl rand -hex 32
-SECRET_KEY = "11088b752484acda51943b487d8657e142e91e085187c110e0967650e7526784"
+if os.environ["SECRET_KEY"]:
+    SECRET_KEY = os.environ["SECRET_KEY"]
+else:
+    SECRET_KEY = "11088b752484acda51943b487d8657e142e91e085187c110e0967650e7526784"
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

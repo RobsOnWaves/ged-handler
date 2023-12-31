@@ -117,7 +117,6 @@ class GoldDigger:
             timer.start()
             # Applique l'expression régulière
             weight_match = weight_pattern.search(row['Designation'])
-            #weight_match = weight_match.group(0) if weight_match else None
         except TimeoutException:
             return "Timeout atteint pour l'expression régulière."
         finally:

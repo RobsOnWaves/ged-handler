@@ -14,6 +14,8 @@ services:
 
       'PWD_MONGO': "rootmongopwd"
 
+      'SECRET_KEY': "11088b752484acda51943b487d8657e142e91e085187c110e0967650e7526784"
+
     networks:
       - ged_network
 
