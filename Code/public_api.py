@@ -14,7 +14,8 @@ from libs.ged_file_handler import GedFileHandler
 from libs.messages import Messages
 from libs.gold_digger import GoldDigger
 from fastapi.middleware.cors import CORSMiddleware
-
+import re
+from pathlib import Path
 
 class Roles(str, Enum):
     admin = "admin"
@@ -23,7 +24,11 @@ class Roles(str, Enum):
 
 # to get a string like this run:
 # openssl rand -hex 32
-SECRET_KEY = "11088b752484acda51943b487d8657e142e91e085187c110e0967650e7526784"
+if os.environ["SECRET_KEY"]:
+    SECRET_KEY = os.environ["SECRET_KEY"]
+else:
+    SECRET_KEY = "11088b752484acda51943b487d8657e142e91e085187c110e0967650e7526784"
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -33,6 +38,7 @@ JSON_EXTENSION = ".json"
 class Token(BaseModel):
     access_token: str
     token_type: str
+    name: str
 
 
 class TokenData(BaseModel):
@@ -120,9 +126,23 @@ def time_window_control(date_start: datetime, date_end: datetime, current_user: 
     return {'status_date': status_date, 'time_window_validated': time_window_validated}
 
 
+def sanitize_filename(filename: str):
+    """
+    Nettoie et valide un nom de fichier pour éviter les injections de chemin.
+    Remplace les caractères non autorisés par des underscores.
+    """
+    return re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)
+
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
+
+def secure_file_path(filename: str, directory="tmp/"):
+    """
+    Construit un chemin de fichier sécurisé dans un répertoire spécifique.
+    """
+    sanitized_filename = sanitize_filename(filename)
+    return os.path.join(directory, sanitized_filename)
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -208,7 +228,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "name": user.full_name, "token_type": "bearer"}
 
 
 @app.get("/users/me/", response_model=User, description="Returns information about the current logged in user")
@@ -225,10 +245,11 @@ async def create_user(user_name: str = Form(),
                       role: Roles = Form(),
                       current_user: User = Depends(get_current_active_user)):
     if current_user.role == "admin":
-        return {'response': mongo_handler.insert_user(user_name, full_name, email, get_password_hash(password),
-                                                      current_user.username, role)}
+        mongo_handler.insert_user(user_name, full_name, email, get_password_hash(password),
+                                  current_user.username, role)
+        return {'response': 'User created successfully'}
     else:
-        return {'response': messages.nok_string}
+        return {'response': 'Access denied'}
 
 
 @app.post("/ged_file", description="Uploading a ged-file to the database, restricted to admin privileges")
@@ -255,19 +276,15 @@ async def ged_stored_collection_to_json_answer(ged_collection_name: str,
 
 
 @app.get("/ged_stored_collection_to_json_file", description="Returns a JSON file from a stored collection")
-async def ged_stored_collection_to_json_file(ged_collection_name: str,
-                                             current_user: User = Depends(get_current_active_user)):
-
+async def ged_stored_collection_to_json_file(ged_collection_name: str, current_user: User = Depends(get_current_active_user)):
     if current_user.role in ['admin', 'user']:
-
-        with open(ged_collection_name + JSON_EXTENSION, 'w') as convert_file:
+        safe_path = secure_file_path(ged_collection_name + JSON_EXTENSION)
+        with open(safe_path, 'w') as convert_file:
             ged_listed_dict = mongo_handler.from_mongo_to_ged_list_dict(collection_name=ged_collection_name)
             ged_handler = GedFileHandler()
             jsoned_ged = ged_handler.jsonize_ged_dict(ged_listed_dict)
             convert_file.write(jsoned_ged)
-
-        return FileResponse(ged_collection_name + JSON_EXTENSION)
-
+        return FileResponse(safe_path)
     else:
         return {'response': messages.nok_string}
 
@@ -280,7 +297,8 @@ async def ged_collection_to_json_answer(file: UploadFile,
     if current_user.role in ['admin', 'user']:
 
         ged_handler = GedFileHandler()
-        ged_handler.from_file_to_list_of_dict_with_cleanup(file, path="tmp/")
+        safe_path = secure_file_path(file.filename)
+        ged_handler.from_file_to_list_of_dict_with_cleanup(file, path=safe_path)
         return ged_handler.listed_documents
 
     else:
@@ -307,11 +325,16 @@ async def ged_collection_to_json_file(file: UploadFile,
     if current_user.role in ['admin', 'user']:
 
         ged_handler = GedFileHandler()
-        ged_handler.from_file_to_list_of_dict_with_cleanup(file, path="tmp/")
+        safe_path = secure_file_path(file.filename)
+        ged_handler.from_file_to_list_of_dict_with_cleanup(file, path=safe_path)
 
-        with open("tmp/" + file.filename + JSON_EXTENSION, 'w') as convert_file:
+        json_file_path = f"{safe_path}{JSON_EXTENSION}"
+        if Path(json_file_path).exists():  # Vérifie si le fichier existe déjà
+            raise HTTPException(status_code=400, detail="File already exists")
+
+        with open(json_file_path, 'w') as convert_file:
             convert_file.write(ged_handler.jsonize_ged_dict(ged_handler.listed_documents))
-        return FileResponse("tmp/" + file.filename + JSON_EXTENSION)
+        return FileResponse(json_file_path)
 
     else:
         return {'response': messages.nok_string}
@@ -334,18 +357,29 @@ async def modify_user_password(
 
 
 @app.post("/gold_file_converter", description="Returns an Excel with the estimated value in euros")
-async def ged_collection_to_json_file(file: UploadFile,
-                                        price_per_kg: int,
-                                      current_user: User = Depends(get_current_active_user)
-                                      ):
+async def gold_file_converter(file: UploadFile, price_per_kg: int, current_user: User = Depends(get_current_active_user)):
     if current_user.role in ['admin', 'user']:
         coeffs = mongo_handler.get_gold_coeffs()
-        return FileResponse(await gold_handler.compute_excel_file(upload_file=file,
-                                                                  price_per_kg=price_per_kg,
-                                                                  gold_coeffs=coeffs))
+        # Génération d'un nom de fichier sécurisé pour le fichier Excel
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        safe_excel_filename = sanitize_filename(f"gold_estimate_{timestamp}.xlsx")
+        full_safe_path = os.path.join('./data_out', safe_excel_filename)
 
+        # Vérification de l'existence du fichier pour éviter d'écraser un fichier existant
+        if Path(full_safe_path).exists():
+            raise HTTPException(status_code=400, detail="File already exists")
+
+        # Appel à la méthode de calcul en passant le chemin sécurisé
+        await gold_handler.compute_excel_file(upload_file=file, price_per_kg=price_per_kg, gold_coeffs=coeffs, output_file=full_safe_path)
+
+        return FileResponse(full_safe_path)
     else:
         return {'response': messages.nok_string}
+
+
+@app.post("/logout")
+async def logout():
+    return {"message": "Disconnected, please log in again"}
 
 
 if __name__ == "__main__":
