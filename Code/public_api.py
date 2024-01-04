@@ -20,18 +20,23 @@ from pathlib import Path
 class Roles(str, Enum):
     admin = "admin"
     user = "user"
+    gold_digger = "gold_digger"
 
 
 # to get a string like this run:
 # openssl rand -hex 32
-if os.environ["SECRET_KEY"]:
+try:
     SECRET_KEY = os.environ["SECRET_KEY"]
-else:
+    print("SECRET_KEY set, using it")
+except KeyError:
     SECRET_KEY = "11088b752484acda51943b487d8657e142e91e085187c110e0967650e7526784"
+    print("SECRET_KEY not set, using default")
+except Exception as e:
+    print("Error getting SECRET_KEY")
+    print(e)
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
 JSON_EXTENSION = ".json"
 
 
@@ -39,6 +44,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     name: str
+    role: str
 
 
 class TokenData(BaseModel):
@@ -228,7 +234,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "name": user.full_name, "token_type": "bearer"}
+    return {"access_token": access_token, "name": user.full_name, "token_type": "bearer", "role": user.role}
 
 
 @app.get("/users/me/", response_model=User, description="Returns information about the current logged in user")
@@ -358,7 +364,7 @@ async def modify_user_password(
 
 @app.post("/gold_file_converter", description="Returns an Excel with the estimated value in euros")
 async def gold_file_converter(file: UploadFile, price_per_kg: int, current_user: User = Depends(get_current_active_user)):
-    if current_user.role in ['admin', 'user']:
+    if current_user.role in ['admin', 'gold_digger']:
         coeffs = mongo_handler.get_gold_coeffs()
         # Génération d'un nom de fichier sécurisé pour le fichier Excel
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
