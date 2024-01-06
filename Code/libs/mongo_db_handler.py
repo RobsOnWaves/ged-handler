@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 from libs.ged_file_handler import GedFileHandler
 from libs.messages import Messages
+import pandas as pd
 import datetime
 import copy
 
@@ -250,3 +251,15 @@ class MongoDbGed:
 
         return self.__messages__.build_ok_user_modified_string(user_name=user_name) if status.acknowledged else \
             self.__messages__.nok_string
+
+    def from_df_to_mongo(self, collection_name: str, df: pd.DataFrame):
+        db = self.__mongo_client__.MEPS
+
+        collection_handler = getattr(db, collection_name)
+
+        try:
+            collection_handler.insert_many(df.to_dict('records'))
+
+        except Exception as e:
+            print("Exception in pushing meps documents in Mongo" + str(e))
+            return {"ged_insert_status": "Exception in pushing meps documents in Mongo" + str(e)}

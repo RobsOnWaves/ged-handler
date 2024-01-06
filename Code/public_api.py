@@ -13,6 +13,7 @@ from libs.mongo_db_handler import MongoDbGed
 from libs.ged_file_handler import GedFileHandler
 from libs.messages import Messages
 from libs.gold_digger import GoldDigger
+from libs.meps_handler import MepsHandler
 from fastapi.middleware.cors import CORSMiddleware
 import re
 from pathlib import Path
@@ -97,6 +98,7 @@ mongo_handler = MongoDbGed(address=os.environ['URL_MONGO'], user=os.environ['USR
 
 messages = Messages()
 gold_handler = GoldDigger()
+meps_handler = MepsHandler()
 
 
 def time_window_control(date_start: datetime, date_end: datetime, current_user: User):
@@ -381,6 +383,23 @@ async def gold_file_converter(file: UploadFile, price_per_kg: int, current_user:
         return FileResponse(full_safe_path)
     else:
         return {'response': messages.nok_string}
+
+
+@app.post("/load_meps_file", description="loads a file with the list pression groups meetings of MEPs into the database")
+async def load_meps_file(file: UploadFile, current_user: User = Depends(get_current_active_user)):
+    if current_user.role in ['admin']:
+         # Génération d'un nom de fichier sécurisé pour le fichier Excel
+        answer = {}
+        # Appel à la méthode de calcul en passant le chemin sécurisé
+        await meps_handler.load_csv_file(upload_file=file, answer=answer)
+
+        if answer['success'] == False:
+            return {'response': messages.nok_string}
+        else:
+            mongo_handler.from_df_to_mongo(df=answer['df'], collection_name="meps_meetings")
+            return {'response': messages.build_ok_action_string(user_name=current_user.username)}
+    else:
+        return {'response': messages.denied_entry}
 
 
 @app.post("/logout")
