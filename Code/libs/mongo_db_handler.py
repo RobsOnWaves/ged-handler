@@ -1,3 +1,4 @@
+import pymongo
 from pymongo import MongoClient
 from libs.ged_file_handler import GedFileHandler
 from libs.messages import Messages
@@ -25,7 +26,7 @@ class MongoDbGed:
             return gold_coeffs
 
         except Exception as e:
-            return self.__exception_message__+ str(e)
+            return self.__exception_message__ + str(e)
 
     @staticmethod
     def from_ged_dict_to_mongodb_dict(ged_handler: GedFileHandler = GedFileHandler(),
@@ -175,7 +176,7 @@ class MongoDbGed:
                     end_cursor = True
 
         except Exception as e:
-            return self.__exception_message__+ str(e)
+            return self.__exception_message__ + str(e)
 
         return users
 
@@ -229,7 +230,7 @@ class MongoDbGed:
             return {"collection_names": collection_names}
 
         except Exception as e:
-            return self.__exception_message__+ str(e)
+            return self.__exception_message__ + str(e)
 
     def modify_user_password(self,
                              user_name: str,
@@ -252,13 +253,26 @@ class MongoDbGed:
         return self.__messages__.build_ok_user_modified_string(user_name=user_name) if status.acknowledged else \
             self.__messages__.nok_string
 
-    def from_df_to_mongo(self, collection_name: str, df: pd.DataFrame):
+    def from_df_to_mongo_meps(self, collection_name: str, df: pd.DataFrame):
         db = self.__mongo_client__.MEPS
 
         collection_handler = getattr(db, collection_name)
 
         try:
-            collection_handler.insert_many(df.to_dict('records'))
+            collection_handler.create_index(
+                [
+                    ('MEP Name', pymongo.ASCENDING),
+                    ('MEP nationalPoliticalGroup', pymongo.ASCENDING),
+                    ('MEP politicalGroup', pymongo.ASCENDING),
+                    ('Title', pymongo.ASCENDING),
+                    ('Date', pymongo.ASCENDING),
+                    ('Place', pymongo.ASCENDING),
+                    ('Capacity', pymongo.ASCENDING),
+                    ('Meeting With', pymongo.ASCENDING),
+                    ('Meeting Related to Procedure', pymongo.ASCENDING)
+                ], unique = True)
+
+            collection_handler.insert_many(df.to_dict('records'), ordered=False)
 
         except Exception as e:
             print("Exception in pushing meps documents in Mongo" + str(e))

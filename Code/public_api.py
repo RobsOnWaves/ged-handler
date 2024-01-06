@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import re
 from pathlib import Path
 
+
 class Roles(str, Enum):
     admin = "admin"
     user = "user"
@@ -95,7 +96,6 @@ el_parametrizor(False)
 mongo_handler = MongoDbGed(address=os.environ['URL_MONGO'], user=os.environ['USR_MONGO'],
                            password=os.environ['PWD_MONGO'])
 
-
 messages = Messages()
 gold_handler = GoldDigger()
 meps_handler = MepsHandler()
@@ -112,7 +112,7 @@ def time_window_control(date_start: datetime, date_end: datetime, current_user: 
         time_window_validated = False
 
     elif date_start > date_end:
-        status_date = "hi " + str(current_user.username) + messages.nok_string +\
+        status_date = "hi " + str(current_user.username) + messages.nok_string + \
                       " you can't finish before you start"
 
         time_window_validated = False
@@ -124,7 +124,7 @@ def time_window_control(date_start: datetime, date_end: datetime, current_user: 
         time_window_validated = False
 
     elif date_start > datetime.utcnow() or date_end > datetime.utcnow():
-        status_date = "hi " + str(current_user.username) + messages.nok_string +\
+        status_date = "hi " + str(current_user.username) + messages.nok_string + \
                       " ged-handler is futuristic but does not accept dates in the future"
         time_window_validated = False
     else:
@@ -141,6 +141,7 @@ def sanitize_filename(filename: str):
     """
     return re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)
 
+
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -151,6 +152,7 @@ def secure_file_path(filename: str, directory="tmp/"):
     """
     sanitized_filename = sanitize_filename(filename)
     return os.path.join(directory, sanitized_filename)
+
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -211,7 +213,8 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 # Configurez le middleware CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "https://frontpreprod.exsilicium.robsonwaves.rocks"],  # Les origines autorisées, vous pouvez utiliser ["*"] pour le développement
+    allow_origins=["http://localhost:8081", "https://frontpreprod.exsilicium.robsonwaves.rocks"],
+    # Les origines autorisées, vous pouvez utiliser ["*"] pour le développement
     allow_credentials=True,
     allow_methods=["*"],  # Les méthodes HTTP autorisées
     allow_headers=["*"],  # Les en-têtes HTTP autorisés
@@ -276,7 +279,6 @@ async def upload_ged_file(file: UploadFile,
 @app.get("/ged_stored_collection_to_json_answer", description="Returns a JSON answer from a stored collection")
 async def ged_stored_collection_to_json_answer(ged_collection_name: str,
                                                current_user: User = Depends(get_current_active_user)):
-
     if current_user.role in ['admin', 'user']:
         return mongo_handler.from_mongo_to_ged_list_dict(collection_name=ged_collection_name)
     else:
@@ -284,7 +286,8 @@ async def ged_stored_collection_to_json_answer(ged_collection_name: str,
 
 
 @app.get("/ged_stored_collection_to_json_file", description="Returns a JSON file from a stored collection")
-async def ged_stored_collection_to_json_file(ged_collection_name: str, current_user: User = Depends(get_current_active_user)):
+async def ged_stored_collection_to_json_file(ged_collection_name: str,
+                                             current_user: User = Depends(get_current_active_user)):
     if current_user.role in ['admin', 'user']:
         safe_path = secure_file_path(ged_collection_name + JSON_EXTENSION)
         with open(safe_path, 'w') as convert_file:
@@ -301,7 +304,6 @@ async def ged_stored_collection_to_json_file(ged_collection_name: str, current_u
                                                   " without storing it in the database")
 async def ged_collection_to_json_answer(file: UploadFile,
                                         current_user: User = Depends(get_current_active_user)):
-
     if current_user.role in ['admin', 'user']:
 
         ged_handler = GedFileHandler()
@@ -315,7 +317,6 @@ async def ged_collection_to_json_answer(file: UploadFile,
 
 @app.get("/ged_stored_collections", description="Returns a list of all stored collections")
 async def ged_stored_collections(current_user: User = Depends(get_current_active_user)):
-
     if current_user.role in ['admin', 'user']:
 
         return mongo_handler.get_collections()
@@ -329,7 +330,6 @@ async def ged_stored_collections(current_user: User = Depends(get_current_active
 async def ged_collection_to_json_file(file: UploadFile,
                                       current_user: User = Depends(get_current_active_user)
                                       ):
-
     if current_user.role in ['admin', 'user']:
 
         ged_handler = GedFileHandler()
@@ -350,11 +350,10 @@ async def ged_collection_to_json_file(file: UploadFile,
 
 @app.post("/modify_user_password", description="Modify an exiting user password, restricted to admin privileges")
 async def modify_user_password(
-                                          user_name: str = Form(description="user name that needs its password to "
-                                                                            "be modified"),
-                                          password: str = Form(min_length=10, description="mini. 10 characters"),
-                                          current_user: User = Depends(get_current_active_user)):
-
+        user_name: str = Form(description="user name that needs its password to "
+                                          "be modified"),
+        password: str = Form(min_length=10, description="mini. 10 characters"),
+        current_user: User = Depends(get_current_active_user)):
     if current_user.role in ['admin']:
 
         return {'response': mongo_handler.modify_user_password(user_name=user_name,
@@ -365,7 +364,8 @@ async def modify_user_password(
 
 
 @app.post("/gold_file_converter", description="Returns an Excel with the estimated value in euros")
-async def gold_file_converter(file: UploadFile, price_per_kg: int, current_user: User = Depends(get_current_active_user)):
+async def gold_file_converter(file: UploadFile, price_per_kg: int,
+                              current_user: User = Depends(get_current_active_user)):
     if current_user.role in ['admin', 'gold_digger']:
         coeffs = mongo_handler.get_gold_coeffs()
         # Génération d'un nom de fichier sécurisé pour le fichier Excel
@@ -378,25 +378,27 @@ async def gold_file_converter(file: UploadFile, price_per_kg: int, current_user:
             raise HTTPException(status_code=400, detail="File already exists")
 
         # Appel à la méthode de calcul en passant le chemin sécurisé
-        await gold_handler.compute_excel_file(upload_file=file, price_per_kg=price_per_kg, gold_coeffs=coeffs, output_file=full_safe_path)
+        await gold_handler.compute_excel_file(upload_file=file, price_per_kg=price_per_kg, gold_coeffs=coeffs,
+                                              output_file=full_safe_path)
 
         return FileResponse(full_safe_path)
     else:
         return {'response': messages.nok_string}
 
 
-@app.post("/load_meps_file", description="loads a file with the list pression groups meetings of MEPs into the database")
+@app.post("/load_meps_file",
+          description="loads a file with the list pression groups meetings of MEPs into the database")
 async def load_meps_file(file: UploadFile, current_user: User = Depends(get_current_active_user)):
     if current_user.role in ['admin']:
-         # Génération d'un nom de fichier sécurisé pour le fichier Excel
+        # Génération d'un nom de fichier sécurisé pour le fichier Excel
         answer = {}
         # Appel à la méthode de calcul en passant le chemin sécurisé
         await meps_handler.load_csv_file(upload_file=file, answer=answer)
 
-        if answer['success'] == False:
+        if not answer['success']:
             return {'response': messages.nok_string}
         else:
-            mongo_handler.from_df_to_mongo(df=answer['df'], collection_name="meps_meetings")
+            mongo_handler.from_df_to_mongo_meps(df=answer['df'], collection_name="meps_meetings")
             return {'response': messages.build_ok_action_string(user_name=current_user.username)}
     else:
         return {'response': messages.denied_entry}
