@@ -277,3 +277,20 @@ class MongoDbGed:
         except Exception as e:
             print("Exception in pushing meps documents in Mongo" + str(e))
             return {"ged_insert_status": "Exception in pushing meps documents in Mongo" + str(e)}
+
+    def from_mongo_to_xlsx_meps(self):
+        db = self.__mongo_client__.MEPS
+        # Récupération des données
+        collection = db.meps_meetings  # Nom de la collection
+
+        try:
+            data = list(collection.find({}, {'_id': False}))
+            df = pd.DataFrame(data)
+            # Création d'un fichier Excel
+            excel_file_path = 'meps_fichier.xlsx'  # Spécifiez le chemin et le nom de fichier souhaités
+            df.to_excel(excel_file_path, index=False)
+            return True
+
+        except Exception as e:
+            print("Exception in getting meps documents in Mongo" + str(e))
+            return {"ged_insert_status": "Exception in getting meps documents in Mongo" + str(e)}

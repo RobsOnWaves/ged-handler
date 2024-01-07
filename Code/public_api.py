@@ -23,6 +23,7 @@ class Roles(str, Enum):
     admin = "admin"
     user = "user"
     gold_digger = "gold_digger"
+    meps = "meps"
 
 
 # to get a string like this run:
@@ -386,7 +387,7 @@ async def gold_file_converter(file: UploadFile, price_per_kg: int,
         return {'response': messages.nok_string}
 
 
-@app.post("/load_meps_file",
+@app.post("/meps_file",
           description="loads a file with the list pression groups meetings of MEPs into the database")
 async def load_meps_file(file: UploadFile, current_user: User = Depends(get_current_active_user)):
     if current_user.role in ['admin']:
@@ -400,6 +401,19 @@ async def load_meps_file(file: UploadFile, current_user: User = Depends(get_curr
         else:
             mongo_handler.from_df_to_mongo_meps(df=answer['df'], collection_name="meps_meetings")
             return {'response': messages.build_ok_action_string(user_name=current_user.username)}
+    else:
+        return {'response': messages.denied_entry}
+
+
+@app.get("/meps_file",
+          description="loads a file with the list pression groups meetings of MEPs into the database")
+async def get_meps_file(current_user: User = Depends(get_current_active_user)):
+    if current_user.role in ['admin', 'meps']:
+        mongo_handler.from_mongo_to_xlsx_meps()
+        if mongo_handler.from_mongo_to_xlsx_meps():
+            return FileResponse('meps_fichier.xlsx')
+        else:
+            return {'response': messages.nok_string}
     else:
         return {'response': messages.denied_entry}
 
