@@ -286,6 +286,7 @@ class MongoDbGed:
         try:
             data = list(collection.find({}, {'_id': False}))
             df = pd.DataFrame(data)
+            df['Date'] = df['Date'].dt.strftime('%d/%m/%Y')
             # Création d'un fichier Excel
             excel_file_path = 'meps_fichier.xlsx'  # Spécifiez le chemin et le nom de fichier souhaités
             df.to_excel(excel_file_path, index=False)

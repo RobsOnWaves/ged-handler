@@ -91,6 +91,7 @@ def el_parametrizor(mode_debug=False):
 
         os.environ['PWD_MONGO'] = "rootmongopwd"
 
+        os.environ['URL_FRONT'] = "http://localhost:8080"
 
 el_parametrizor(False)
 
@@ -214,7 +215,7 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 # Configurez le middleware CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "https://hedonist.exsilicium.robsonwaves.rocks"],  # Les origines autorisées, vous pouvez utiliser ["*"] pour le développement
+    allow_origins=[os.environ['URL_FRONT']],  # Les origines autorisées, vous pouvez utiliser ["*"] pour le développement
     allow_credentials=True,
     allow_methods=["*"],  # Les méthodes HTTP autorisées
     allow_headers=["*"],  # Les en-têtes HTTP autorisés

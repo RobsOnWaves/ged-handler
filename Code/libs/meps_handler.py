@@ -39,6 +39,8 @@ class MepsHandler:
         try:
             timer.start()
             df = pd.read_csv(temp_file_path)
+            df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='coerce')
+            df['Date'] = df['Date'].fillna(pd.to_datetime("01-01-1970"))
             answer["df"] = df
             answer["success"] = True
             return answer
