@@ -16,6 +16,8 @@ services:
 
       'SECRET_KEY': "11088b752484acda51943b487d8657e142e91e085187c110e0967650e7526784"
 
+      'URL_FRONT': 'http://localhost:8080'
+
     networks:
       - ged_network
 
