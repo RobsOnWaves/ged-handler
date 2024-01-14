@@ -6,6 +6,10 @@ class Messages:
                                               language='alias') + "something went wrong for Fay Wray and King Kong"
                               + emojize(":musical_note:" + ":lips:", language='alias')}
 
+    nok_string_raw = emojize(":no_entry:" + ":musical_note:",language="alias") +\
+                     "something went wrong for Fay Wray and King Kong" + \
+                     emojize(":musical_note:" + ":lips:", language="alias")
+
     __ok_string_user_left_side__ = emojize(":ok_woman:", language='alias') + emojize(":+1:", language='alias') \
                                    + "user '"
 
