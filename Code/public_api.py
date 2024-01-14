@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Union
 from enum import Enum
-from fastapi import Depends, FastAPI, HTTPException, status, Form, UploadFile
+from fastapi import Depends, FastAPI, HTTPException, status, Form, UploadFile, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse, RedirectResponse
 from jose import JWTError, jwt
@@ -17,7 +17,10 @@ from libs.meps_handler import MepsHandler
 from fastapi.middleware.cors import CORSMiddleware
 import re
 from pathlib import Path
-
+import json
+import logging
+from pythonjsonlogger import jsonlogger
+import time
 
 class Roles(str, Enum):
     admin = "admin"
@@ -25,6 +28,19 @@ class Roles(str, Enum):
     gold_digger = "gold_digger"
     meps = "meps"
 
+
+# Configuration du Logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Créer un gestionnaire de logs qui écrit dans un fichier
+logHandler = logging.FileHandler('app_logs.json')
+
+# Utiliser le format JSON pour le gestionnaire de fichier
+formatter = jsonlogger.JsonFormatter()
+logHandler.setFormatter(formatter)
+
+logger.addHandler(logHandler)
 
 # to get a string like this run:
 # openssl rand -hex 32
@@ -37,6 +53,7 @@ except KeyError:
 except Exception as e:
     print("Error getting SECRET_KEY")
     print(e)
+
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -81,6 +98,24 @@ GED-Handler is an authenticated app that allows you to :
 GED-Handler is written in Python with [FastAPI](https://fastapi.tiangolo.com/) and deployed with Docker (details of the 
 code at: [GitHub GED-Handler repo](https://github.com/RobsOnWaves/ged-handler))
 """, title="GED-Handler")
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+def get_user_id_from_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")  # 'sub' est généralement l'identifiant de l'utilisateur
+    except jwt.JWTError:
+        return None
+
+def log_to_json_file(log_data):
+    log_file_path = 'logz.json'
+    try:
+        with open(log_file_path, 'a') as log_file:
+            json.dump(log_data, log_file)
+            log_file.write('\n')  # Ajoute une nouvelle ligne après chaque log
+    except Exception as e:
+        print(f"Error writing to log file: {e}")
 
 
 def el_parametrizor(mode_debug=False):
@@ -220,6 +255,74 @@ app.add_middleware(
     allow_methods=["*"],  # Les méthodes HTTP autorisées
     allow_headers=["*"],  # Les en-têtes HTTP autorisés
 )
+
+
+async def get_request_body(request: Request):
+    body = await request.body()
+
+    async def app(scope, receive, send):
+        async def override_receive():
+            return {"type": "http.request", "body": body}
+
+        await request.app(scope, override_receive, send)
+
+    # Important: Définir override_receive ici pour qu'elle soit accessible
+    async def override_receive():
+        return {"type": "http.request", "body": body}
+
+    request._receive = override_receive
+
+    return body
+
+
+def mask_sensitive_data_and_exclude_files(body: str) -> str:
+    # Masquer les données sensibles
+    body = re.sub(r'(password=)[^&]*', r'\1[MASKED]', body, flags=re.IGNORECASE)
+
+    # Exclure les fichiers uploadés (ajuster selon la structure de la requête)
+    body = re.sub(r'(upload_file=)[^&]*', '[FILE EXCLUDED]', body, flags=re.IGNORECASE)
+
+    return body
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+
+    process_time = (time.time() - start_time) * 1000
+
+    # Vérifier le type de contenu
+    content_type = request.headers.get('content-type')
+
+    # Traiter différemment les données binaires
+    if content_type and ("multipart/form-data" in content_type or "application/octet-stream" in content_type):
+        body_text = '[Binary Data]'
+    else:
+        # Obtenir et nettoyer le corps de la requête pour les types de contenu textuels
+        body = await get_request_body(request)
+        body_text = body.decode('utf-8') if body else ''
+        body_text = mask_sensitive_data_and_exclude_files(body_text)
+        # Continuer le traitement de la requête
+        response = await call_next(request)
+
+    try:
+        token = await oauth2_scheme(request)
+        user_id = get_user_id_from_token(token) if token else "anonymous"
+    except Exception as e:
+        user_id = "error_in_token"
+
+    # Logger les informations
+    logger.info('Request info', extra={
+    "timestamp": datetime.fromtimestamp(start_time).isoformat(),
+    "user_id": user_id,
+    'request_method': request.method,
+    'request_url': str(request.url),
+    'response_status': response.status_code,
+    'process_time_ms': process_time,
+        'request_body': body_text,
+        # Autres informations...
+        })
+
+    return response
 
 
 @app.get("/")
