@@ -1,5 +1,5 @@
 import pymongo
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 from libs.ged_file_handler import GedFileHandler
 from libs.messages import Messages
 import pandas as pd
@@ -210,13 +210,13 @@ class MongoDbGed:
             status = db.users.insert_one(query)
 
         except errors.DuplicateKeyError as e:
-            return {'response': "user already exists" + self.__messages__.nok_string}
+            return {'response': "user already exists" + self.__messages__.nok_string_raw}
 
         except Exception as e:
-            return {'response': "MongoDB error" + "Exception: " + str(e) + self.__messages__.nok_string}
+            return {'response': "MongoDB error" + "Exception: " + str(e) + self.__messages__.nok_string_raw}
 
-        return self.__messages__.build_ok_user_string(user_name=user_name) if status.acknowledged else \
-            self.__messages__.nok_string
+        return {'response': self.__messages__.build_ok_user_string(user_name=user_name) if status.acknowledged else \
+            self.__messages__.nok_string}
 
     def get_collections(self):
 
