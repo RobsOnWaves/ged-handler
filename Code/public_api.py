@@ -288,8 +288,6 @@ def mask_sensitive_data_and_exclude_files(body: str) -> str:
 async def log_requests(request: Request, call_next):
     start_time = time.time()
 
-    process_time = (time.time() - start_time) * 1000
-
     # Vérifier le type de contenu
     content_type = request.headers.get('content-type')
 
@@ -301,8 +299,6 @@ async def log_requests(request: Request, call_next):
         body = await get_request_body(request)
         body_text = body.decode('utf-8') if body else ''
         body_text = mask_sensitive_data_and_exclude_files(body_text)
-        # Continuer le traitement de la requête
-        response = await call_next(request)
 
     try:
         token = await oauth2_scheme(request)
@@ -310,6 +306,9 @@ async def log_requests(request: Request, call_next):
     except Exception as e:
         user_id = "error_in_token"
 
+    # Continuer le traitement de la requête
+    response = await call_next(request)
+    process_time = (time.time() - start_time) * 1000
     # Logger les informations
     logger.info('Request info', extra={
     "timestamp": datetime.fromtimestamp(start_time).isoformat(),
@@ -360,9 +359,8 @@ async def create_user(user_name: str = Form(),
                       role: Roles = Form(),
                       current_user: User = Depends(get_current_active_user)):
     if current_user.role == "admin":
-        mongo_handler.insert_user(user_name, full_name, email, get_password_hash(password),
+        return mongo_handler.insert_user(user_name, full_name, email, get_password_hash(password),
                                   current_user.username, role)
-        return {'response': 'User created successfully'}
     else:
         return {'response': 'Access denied'}
 
@@ -377,7 +375,7 @@ async def upload_ged_file(file: UploadFile,
         return mongo_handler.insert_list_of_ged_objets(collection_name=ged_import_name, ged_handler=ged_handler)
 
     else:
-        return {'response': messages.denied_entry}
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
 
 
 @app.get("/ged_stored_collection_to_json_answer", description="Returns a JSON answer from a stored collection")
@@ -386,7 +384,7 @@ async def ged_stored_collection_to_json_answer(ged_collection_name: str,
     if current_user.role in ['admin', 'user']:
         return mongo_handler.from_mongo_to_ged_list_dict(collection_name=ged_collection_name)
     else:
-        return {'response': messages.nok_string}
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
 
 
 @app.get("/ged_stored_collection_to_json_file", description="Returns a JSON file from a stored collection")
@@ -401,7 +399,7 @@ async def ged_stored_collection_to_json_file(ged_collection_name: str,
             convert_file.write(jsoned_ged)
         return FileResponse(safe_path)
     else:
-        return {'response': messages.nok_string}
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
 
 
 @app.post("/ged_file_to_json_answer", description="Returns a converted JSON file from a ged-file"
@@ -416,7 +414,7 @@ async def ged_collection_to_json_answer(file: UploadFile,
         return ged_handler.listed_documents
 
     else:
-        return {'response': messages.nok_string}
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
 
 
 @app.get("/ged_stored_collections", description="Returns a list of all stored collections")
@@ -426,7 +424,7 @@ async def ged_stored_collections(current_user: User = Depends(get_current_active
         return mongo_handler.get_collections()
 
     else:
-        return {'response': messages.nok_string}
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
 
 
 @app.post("/ged_file_to_json_file", description="Returns a converted JSON file from a ged-file"
@@ -449,7 +447,7 @@ async def ged_collection_to_json_file(file: UploadFile,
         return FileResponse(json_file_path)
 
     else:
-        return {'response': messages.nok_string}
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
 
 
 @app.post("/modify_user_password", description="Modify an exiting user password, restricted to admin privileges")
@@ -464,7 +462,7 @@ async def modify_user_password(
                                                                hashed_password=get_password_hash(password))}
 
     else:
-        return {'response': messages.nok_string}
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
 
 
 @app.post("/gold_file_converter", description="Returns an Excel with the estimated value in euros")
@@ -487,7 +485,7 @@ async def gold_file_converter(file: UploadFile, price_per_kg: int,
 
         return FileResponse(full_safe_path)
     else:
-        return {'response': messages.nok_string}
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
 
 
 @app.post("/meps_file",
@@ -500,12 +498,12 @@ async def load_meps_file(file: UploadFile, current_user: User = Depends(get_curr
         await meps_handler.load_csv_file(upload_file=file, answer=answer)
 
         if not answer['success']:
-            return {'response': messages.nok_string}
+            raise HTTPException(status_code=403, detail=messages.denied_entry)
         else:
             mongo_handler.from_df_to_mongo_meps(df=answer['df'], collection_name="meps_meetings")
             return {'response': messages.build_ok_action_string(user_name=current_user.username)}
     else:
-        return {'response': messages.denied_entry}
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
 
 
 @app.get("/meps_file",
@@ -516,10 +514,9 @@ async def get_meps_file(current_user: User = Depends(get_current_active_user)):
         if mongo_handler.from_mongo_to_xlsx_meps():
             return FileResponse('meps_fichier.xlsx')
         else:
-            return {'response': messages.nok_string}
+            raise HTTPException(status_code=403, detail=messages.denied_entry)
     else:
-        return {'response': messages.denied_entry}
-
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
 
 @app.post("/logout")
 async def logout():
