@@ -21,6 +21,7 @@ import json
 import logging
 from pythonjsonlogger import jsonlogger
 import time
+from typing import Optional
 
 
 class Roles(str, Enum):
@@ -511,11 +512,27 @@ async def load_meps_file(file: UploadFile, current_user: User = Depends(get_curr
 
 @app.get("/meps_file",
          description="loads a file with the list pression groups meetings of MEPs into the database")
-async def get_meps_file(current_user: User = Depends(get_current_active_user)):
+async def get_meps_file(mep_name: Optional[str] = None,
+                        national_political_group: Optional[str] = None,
+                        political_group: Optional[str] = None,
+                        title: Optional[str] = None,
+                        place: Optional[str] = None,
+                        meeting_with: Optional[str] = None,
+                        current_user: User = Depends(get_current_active_user)):
     if current_user.role in ['admin', 'meps']:
-        mongo_handler.from_mongo_to_xlsx_meps()
-        if mongo_handler.from_mongo_to_xlsx_meps():
-            return FileResponse('meps_fichier.xlsx')
+        db_name = meps_handler.get_mep_db_name()
+        collection_name = meps_handler.get_mep_collection_name()
+        wild_card = {"$regex": ".*"}
+        query = {
+            'MEP Name': mep_name if mep_name is not None else wild_card,
+            'MEP nationalPoliticalGroup': national_political_group if national_political_group is not None else wild_card,
+            'MEP politicalGroup': political_group if political_group is not None else wild_card,
+            'Title': title if title is not None else wild_card,
+            'Place': place if place is not None else wild_card,
+            'Meeting With': meeting_with if meeting_with is not None else wild_card
+        }
+        if mongo_handler.from_mongo_to_xlsx(db_name=db_name, collection_name=collection_name, query=query):
+            return FileResponse('export_file.xlsx')
         else:
             raise HTTPException(status_code=404, detail=messages.nok_string_raw)
     else:

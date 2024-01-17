@@ -278,17 +278,22 @@ class MongoDbGed:
             print("Exception in pushing meps documents in Mongo" + str(e))
             return {"ged_insert_status": "Exception in pushing meps documents in Mongo" + str(e)}
 
-    def from_mongo_to_xlsx_meps(self):
-        db = self.__mongo_client__.MEPS
-        # Récupération des données
-        collection = db.meps_meetings  # Nom de la collection
+    def from_mongo_to_xlsx(self, db_name: str, collection_name: str, query: dict):
+
+        client = self.__mongo_client__
+        db = client[db_name]
+        collection = db[collection_name]
 
         try:
-            data = list(collection.find({}, {'_id': False}))
+            data = list(collection.find(query, {'_id': False}))
             df = pd.DataFrame(data)
-            df['Date'] = df['Date'].dt.strftime('%d/%m/%Y')
+            if 'Date' in df.columns:
+                df['Date'] = df['Date'].dt.strftime('%d/%m/%Y')
+            else:
+                print('No Date column')
+
             # Création d'un fichier Excel
-            excel_file_path = 'meps_fichier.xlsx'  # Spécifiez le chemin et le nom de fichier souhaités
+            excel_file_path = 'export_file.xlsx'  # Spécifiez le chemin et le nom de fichier souhaités
             df.to_excel(excel_file_path, index=False)
             return True
 
@@ -296,7 +301,7 @@ class MongoDbGed:
             print("Exception in getting meps documents in Mongo" + str(e))
             return {"ged_insert_status": "Exception in getting meps documents in Mongo" + str(e)}
 
-    def get_unique_values(self,db_name: str, collection_name: str, fields: list):
+    def get_unique_values(self, db_name: str, collection_name: str, fields: list):
 
         # Connexion à la base de données MongoDB
         client = self.__mongo_client__
@@ -319,3 +324,5 @@ class MongoDbGed:
         client.close()
 
         return valeurs_dedupliquees
+
+
