@@ -56,3 +56,11 @@ class MepsHandler:
             # Arrête le timer
             timer.cancel()
 
+    def get_mep_field_list(self):
+        return self.__mep_field_list__
+
+    def get_mep_db_name(self):
+        return self.__mep_db_name__
+
+    def get_mep_collection_name(self):
+        return self.__collection_name__
