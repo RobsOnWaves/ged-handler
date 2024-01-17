@@ -22,6 +22,7 @@ import logging
 from pythonjsonlogger import jsonlogger
 import time
 
+
 class Roles(str, Enum):
     admin = "admin"
     user = "user"
@@ -53,7 +54,6 @@ except KeyError:
 except Exception as e:
     print("Error getting SECRET_KEY")
     print(e)
-
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -101,12 +101,14 @@ code at: [GitHub GED-Handler repo](https://github.com/RobsOnWaves/ged-handler))
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+
 def get_user_id_from_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload.get("sub")  # 'sub' est généralement l'identifiant de l'utilisateur
     except jwt.JWTError:
         return None
+
 
 def log_to_json_file(log_data):
     log_file_path = 'logz.json'
@@ -260,7 +262,7 @@ app.add_middleware(
 async def get_request_body(request: Request):
     body = await request.body()
 
-    async def app(scope, receive, send):
+    async def app(scope, send):
         async def override_receive():
             return {"type": "http.request", "body": body}
 
@@ -284,6 +286,7 @@ def mask_sensitive_data_and_exclude_files(body: str) -> str:
 
     return body
 
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
@@ -304,22 +307,22 @@ async def log_requests(request: Request, call_next):
         token = await oauth2_scheme(request)
         user_id = get_user_id_from_token(token) if token else "anonymous"
     except Exception as e:
-        user_id = "error_in_token"
+        user_id = "error_in_token" + str(e)
 
     # Continuer le traitement de la requête
     response = await call_next(request)
     process_time = (time.time() - start_time) * 1000
     # Logger les informations
     logger.info('Request info', extra={
-    "timestamp": datetime.fromtimestamp(start_time).isoformat(),
-    "user_id": user_id,
-    'request_method': request.method,
-    'request_url': str(request.url),
-    'response_status': response.status_code,
-    'process_time_ms': process_time,
+        "timestamp": datetime.fromtimestamp(start_time).isoformat(),
+        "user_id": user_id,
+        'request_method': request.method,
+        'request_url': str(request.url),
+        'response_status': response.status_code,
+        'process_time_ms': process_time,
         'request_body': body_text,
         # Autres informations...
-        })
+    })
 
     return response
 
@@ -360,7 +363,7 @@ async def create_user(user_name: str = Form(),
                       current_user: User = Depends(get_current_active_user)):
     if current_user.role == "admin":
         return mongo_handler.insert_user(user_name, full_name, email, get_password_hash(password),
-                                  current_user.username, role)
+                                         current_user.username, role)
     else:
         return {'response': 'Access denied'}
 
@@ -498,7 +501,7 @@ async def load_meps_file(file: UploadFile, current_user: User = Depends(get_curr
         await meps_handler.load_csv_file(upload_file=file, answer=answer)
 
         if not answer['success']:
-            raise HTTPException(status_code=403, detail=messages.denied_entry)
+            raise HTTPException(status_code=404, detail=messages.nok_string_raw)
         else:
             mongo_handler.from_df_to_mongo_meps(df=answer['df'], collection_name="meps_meetings")
             return {'response': messages.build_ok_action_string(user_name=current_user.username)}
@@ -507,16 +510,43 @@ async def load_meps_file(file: UploadFile, current_user: User = Depends(get_curr
 
 
 @app.get("/meps_file",
-          description="loads a file with the list pression groups meetings of MEPs into the database")
+         description="loads a file with the list pression groups meetings of MEPs into the database")
 async def get_meps_file(current_user: User = Depends(get_current_active_user)):
     if current_user.role in ['admin', 'meps']:
         mongo_handler.from_mongo_to_xlsx_meps()
         if mongo_handler.from_mongo_to_xlsx_meps():
             return FileResponse('meps_fichier.xlsx')
         else:
-            raise HTTPException(status_code=403, detail=messages.denied_entry)
+            raise HTTPException(status_code=404, detail=messages.nok_string_raw)
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
+
+
+@app.get("/meps_file_fields_values",
+         description="gets a file with the list of the values of fields")
+async def get_meps_file_selected_fields(current_user: User = Depends(get_current_active_user)):
+    if current_user.role in ['admin', 'meps']:
+        db_name = meps_handler.get_mep_db_name()
+        fields = meps_handler.get_mep_field_list()
+        collection_name = meps_handler.get_mep_collection_name()
+
+        try:
+            values = mongo_handler.get_unique_values(db_name=db_name, collection_name=collection_name, fields=fields)
+        except Exception as e:
+            print("get_meps_file_selected_fields : " + str(e), flush=True)
+            raise HTTPException(status_code=404, detail=messages.nok_string_raw)
+
+        if values is not None:
+            try:
+                return values
+            except Exception as e:
+                print("get_meps_file_selected_fields : " + str(e), flush=True)
+                raise HTTPException(status_code=404, detail=messages.nok_string_raw)
+        else:
+            raise HTTPException(status_code=404, detail=messages.nok_string_raw)
+    else:
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
+
 
 @app.post("/logout")
 async def logout():

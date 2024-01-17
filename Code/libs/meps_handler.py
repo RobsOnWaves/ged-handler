@@ -20,6 +20,10 @@ class MepsHandler:
         self.__messages__ = Messages()
         self.__max_length__ = 1000
         self.__timeout_duration__ = 60
+        self.__mep_field_list__ = ["MEP Name", "MEP nationalPoliticalGroup", "MEP politicalGroup", "Title", "Place",
+                                   "Meeting With", "Meeting Related to Procedure"]
+        self.__mep_db_name__ = "MEPS"
+        self.__collection_name__ = "meps_meetings"
 
     class TimeoutException(Exception):
             pass

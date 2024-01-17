@@ -295,3 +295,27 @@ class MongoDbGed:
         except Exception as e:
             print("Exception in getting meps documents in Mongo" + str(e))
             return {"ged_insert_status": "Exception in getting meps documents in Mongo" + str(e)}
+
+    def get_unique_values(self,db_name: str, collection_name: str, fields: list):
+
+        # Connexion à la base de données MongoDB
+        client = self.__mongo_client__
+        db = client[db_name]
+        collection = db[collection_name]
+
+        # Initialiser un dictionnaire pour stocker les valeurs uniques
+        # Dictionnaire pour stocker les valeurs dédupliquées pour chaque champ
+        valeurs_dedupliquees = {}
+
+        # Récupérer les valeurs dédupliquées pour chaque champ
+        for field in fields:
+            valeurs = collection.distinct(field)
+            # Convertir les valeurs en chaînes de caractères si elles ne le sont pas déjà
+            valeurs_conformes = [str(val) if not isinstance(val, str) else val for val in valeurs]
+
+            valeurs_dedupliquees[field] = valeurs_conformes
+
+        # Fermer la connexion à la base de données
+        client.close()
+
+        return valeurs_dedupliquees
