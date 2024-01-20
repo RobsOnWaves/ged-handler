@@ -278,20 +278,55 @@ class MongoDbGed:
             print("Exception in pushing meps documents in Mongo" + str(e))
             return {"ged_insert_status": "Exception in pushing meps documents in Mongo" + str(e)}
 
-    def from_mongo_to_xlsx_meps(self):
-        db = self.__mongo_client__.MEPS
-        # Récupération des données
-        collection = db.meps_meetings  # Nom de la collection
+    def from_mongo_to_xlsx(self, db_name: str, collection_name: str, query: dict):
+
+        client = self.__mongo_client__
+        db = client[db_name]
+        collection = db[collection_name]
 
         try:
-            data = list(collection.find({}, {'_id': False}))
+            data = list(collection.find(query, {'_id': False}))
             df = pd.DataFrame(data)
-            df['Date'] = df['Date'].dt.strftime('%d/%m/%Y')
+            if 'Date' in df.columns:
+                df['Date'] = df['Date'].dt.strftime('%d/%m/%Y')
+            else:
+                print('No Date column')
+
             # Création d'un fichier Excel
-            excel_file_path = 'meps_fichier.xlsx'  # Spécifiez le chemin et le nom de fichier souhaités
+            excel_file_path = 'export_file.xlsx'  # Spécifiez le chemin et le nom de fichier souhaités
             df.to_excel(excel_file_path, index=False)
             return True
 
         except Exception as e:
             print("Exception in getting meps documents in Mongo" + str(e))
             return {"ged_insert_status": "Exception in getting meps documents in Mongo" + str(e)}
+
+    def get_unique_values(self, db_name: str, collection_name: str, fields: list):
+
+        # Connexion à la base de données MongoDB
+        client = self.__mongo_client__
+        db = client[db_name]
+        collection = db[collection_name]
+
+        # Initialiser un dictionnaire pour stocker les valeurs uniques
+        # Dictionnaire pour stocker les valeurs dédupliquées pour chaque champ
+        valeurs_dedupliquees = {}
+
+        # Récupérer les valeurs dédupliquées pour chaque champ
+        for field in fields:
+            valeurs = collection.distinct(field)
+            valeurs_conformes = []
+            for val in valeurs:
+                if not isinstance(val, str):
+                    val = str(val)
+                # Tronquer la chaîne si elle dépasse 50 caractères et ajouter "..."
+                if len(val) > 50:
+                    val = val[:50] + "..."
+                valeurs_conformes.append(val)
+
+            valeurs_dedupliquees[field] = valeurs_conformes
+
+
+        return valeurs_dedupliquees
+
+
