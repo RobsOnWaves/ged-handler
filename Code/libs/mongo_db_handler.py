@@ -315,13 +315,17 @@ class MongoDbGed:
         # Récupérer les valeurs dédupliquées pour chaque champ
         for field in fields:
             valeurs = collection.distinct(field)
-            # Convertir les valeurs en chaînes de caractères si elles ne le sont pas déjà
-            valeurs_conformes = [str(val) if not isinstance(val, str) else val for val in valeurs]
+            valeurs_conformes = []
+            for val in valeurs:
+                if not isinstance(val, str):
+                    val = str(val)
+                # Tronquer la chaîne si elle dépasse 50 caractères et ajouter "..."
+                if len(val) > 50:
+                    val = val[:50] + "..."
+                valeurs_conformes.append(val)
 
             valeurs_dedupliquees[field] = valeurs_conformes
 
-        # Fermer la connexion à la base de données
-        client.close()
 
         return valeurs_dedupliquees
 

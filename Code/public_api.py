@@ -522,14 +522,18 @@ async def get_meps_file(mep_name: Optional[str] = None,
     if current_user.role in ['admin', 'meps']:
         db_name = meps_handler.get_mep_db_name()
         collection_name = meps_handler.get_mep_collection_name()
-        wild_card = {"$regex": ".*"}
+
+        def wild_card(word_to_search: str) :
+            word_to_search = re.escape(word_to_search)
+            return {"$regex": ".*" + word_to_search + ".*"}
+
         query = {
-            'MEP Name': mep_name if mep_name is not None else wild_card,
-            'MEP nationalPoliticalGroup': national_political_group if national_political_group is not None else wild_card,
-            'MEP politicalGroup': political_group if political_group is not None else wild_card,
-            'Title': title if title is not None else wild_card,
-            'Place': place if place is not None else wild_card,
-            'Meeting With': meeting_with if meeting_with is not None else wild_card
+            'MEP Name': wild_card(mep_name) if mep_name is not None else wild_card(''),
+            'MEP nationalPoliticalGroup': wild_card(national_political_group) if national_political_group is not None else wild_card(''),
+            'MEP politicalGroup': wild_card(political_group) if political_group is not None else wild_card(''),
+            'Title': wild_card(title) if title is not None else wild_card(''),
+            'Place': wild_card(place) if place is not None else wild_card(''),
+            'Meeting With': wild_card(meeting_with) if meeting_with is not None else wild_card('')
         }
         if mongo_handler.from_mongo_to_xlsx(db_name=db_name, collection_name=collection_name, query=query):
             return FileResponse('export_file.xlsx')
