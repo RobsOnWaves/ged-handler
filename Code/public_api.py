@@ -518,6 +518,8 @@ async def get_meps_file(mep_name: Optional[str] = None,
                         title: Optional[str] = None,
                         place: Optional[str] = None,
                         meeting_with: Optional[str] = None,
+                        start_date: Optional[datetime] = None,
+                        end_date: Optional[datetime] = None,
                         current_user: User = Depends(get_current_active_user)):
     if current_user.role in ['admin', 'meps']:
         db_name = meps_handler.get_mep_db_name()
@@ -525,7 +527,7 @@ async def get_meps_file(mep_name: Optional[str] = None,
 
         def wild_card(word_to_search: str) :
             word_to_search = re.escape(word_to_search)
-            return {"$regex": ".*" + word_to_search + ".*"}
+            return {"$regex": ".*" + word_to_search + ".*", "$options": "i"}
 
         query = {
             'MEP Name': wild_card(mep_name) if mep_name is not None else wild_card(''),
@@ -535,6 +537,14 @@ async def get_meps_file(mep_name: Optional[str] = None,
             'Place': wild_card(place) if place is not None else wild_card(''),
             'Meeting With': wild_card(meeting_with) if meeting_with is not None else wild_card('')
         }
+
+        if start_date and end_date:
+            query['Date'] = {"$gte": start_date, "$lte": end_date}
+        elif start_date:
+            query['Date'] = {"$gte": start_date}
+        elif end_date:
+            query['Date'] = {"$lte": end_date}
+
         if mongo_handler.from_mongo_to_xlsx(db_name=db_name, collection_name=collection_name, query=query):
             return FileResponse('export_file.xlsx')
         else:
