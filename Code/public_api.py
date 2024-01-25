@@ -579,6 +579,52 @@ async def get_meps_file_selected_fields(current_user: User = Depends(get_current
         raise HTTPException(status_code=403, detail=messages.denied_entry)
 
 
+@app.get("/meps_stats",
+         description="get meps stats")
+async def get_meps_stats(mep_name: Optional[str] = None,
+                        national_political_group: Optional[str] = None,
+                        political_group: Optional[str] = None,
+                        title: Optional[str] = None,
+                        place: Optional[str] = None,
+                        meeting_with: Optional[str] = None,
+                        start_date: Optional[datetime] = None,
+                        end_date: Optional[datetime] = None,
+                        current_user: User = Depends(get_current_active_user)):
+    if current_user.role in ['admin', 'meps']:
+        db_name = meps_handler.get_mep_db_name()
+        collection_name = meps_handler.get_mep_collection_name()
+
+        def wild_card(word_to_search: str) :
+            word_to_search = re.escape(word_to_search)
+            return {"$regex": ".*" + word_to_search + ".*", "$options": "i"}
+
+        query = {
+            'MEP Name': wild_card(mep_name) if mep_name is not None else wild_card(''),
+            'MEP nationalPoliticalGroup': wild_card(national_political_group) if national_political_group is not None else wild_card(''),
+            'MEP politicalGroup': wild_card(political_group) if political_group is not None else wild_card(''),
+            'Title': wild_card(title) if title is not None else wild_card(''),
+            'Place': wild_card(place) if place is not None else wild_card(''),
+            'Meeting With': wild_card(meeting_with) if meeting_with is not None else wild_card('')
+        }
+
+        if start_date and end_date:
+            query['Date'] = {"$gte": start_date, "$lte": end_date}
+        elif start_date:
+            query['Date'] = {"$gte": start_date}
+        elif end_date:
+            query['Date'] = {"$lte": end_date}
+
+        try:
+            df = mongo_handler.get_df(db_name=db_name, collection_name=collection_name, query=query)
+
+            return meps_handler.get_stats(df)
+
+        except Exception as e:
+            print("get_meps_stats : " + str(e), flush=True)
+            raise HTTPException(status_code=404, detail=messages.nok_string_raw)
+    else:
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
+
 @app.post("/logout")
 async def logout():
     return {"message": "Disconnected, please log in again"}

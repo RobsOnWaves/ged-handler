@@ -329,4 +329,23 @@ class MongoDbGed:
 
         return valeurs_dedupliquees
 
+    def get_df(self, db_name: str, collection_name: str, query: dict):
+
+        client = self.__mongo_client__
+        db = client[db_name]
+        collection = db[collection_name]
+
+        try:
+            data = list(collection.find(query, {'_id': False}))
+            df = pd.DataFrame(data)
+            if 'Date' in df.columns:
+                df['Date'] = df['Date'].dt.strftime('%d/%m/%Y')
+            else:
+                print('No Date column')
+
+            return df
+
+        except Exception as e:
+            print("Exception in getting meps documents in Mongo" + str(e))
+            return {"ged_insert_status": "Exception in getting meps documents in Mongo" + str(e)}
 
