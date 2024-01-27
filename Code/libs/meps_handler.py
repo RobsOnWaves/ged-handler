@@ -117,12 +117,15 @@ class MepsHandler:
                        "Title",
                        "Meeting With"]:
             occurrences_counter = Counter(df[~df[column].str.contains("Exchange of views")][column])
+            occurrences_counter_raw = Counter(df[column])
             if column not in ["Title", "Meeting With"]:
                 stats[column] = Counter(
                     {k: v for k, v in sorted(occurrences_counter.items(), key=lambda item: item[1], reverse=True)})
             else:
                 stats["Title_no_stopwords" if column == "Title" else "Meeting_With_no_stopwords"] = Counter(
                     {k: v for k, v in sorted(occurrences_counter.items(), key=lambda item: item[1], reverse=True)})
+                stats["Title_unfiltered" if column == "Title" else "Meeting_With_unfiltered"] = Counter(
+                    {k: v for k, v in sorted(occurrences_counter_raw.items(), key=lambda item: item[1], reverse=True)})
 
         return stats
 
