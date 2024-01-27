@@ -81,6 +81,9 @@ class MepsHandler:
         stop_words.update(set(stopwords.words('dutch')))
         stop_words.update(set(stopwords.words('russian')))
         stop_words.update(set(stopwords.words('finnish')))
+        stop_words.update(set(stopwords.words('danish')))
+        stop_words.update(["meeting", "staff", "directive"])
+
         df = df.replace(to_replace='[-/&()]', value=' ', regex=True)
         df["Meeting Related to Procedure"] = df["Meeting Related to Procedure"].replace(to_replace=pd.NA,
                                                                                         value='Not related to a procedure'
@@ -102,16 +105,23 @@ class MepsHandler:
         df = df.map(convert_numbers_to_string)
 
         for column in ["Title", "Meeting With"]:
-            occurrences_counter = count_words(df[column])
+            occurrences_counter = count_words(df[~df[column].str.contains("Exchange of views")][column])
             stats[column] = Counter(
                 {k: v for k, v in sorted(occurrences_counter.items(), key=lambda item: item[1], reverse=True)})
         for column in ["MEP Name",
                        "MEP nationalPoliticalGroup",
                        "MEP politicalGroup",
                        "Place",
-                       "Meeting Related to Procedure"]:
-            occurrences_counter = Counter(df[column])
-            stats[column] = Counter(
-                {k: v for k, v in sorted(occurrences_counter.items(), key=lambda item: item[1], reverse=True)})
+                       "Meeting Related to Procedure",
+                       "Title",
+                       "Meeting With"]:
+            occurrences_counter = Counter(df[~df[column].str.contains("Exchange of views")][column])
+            if column not in ["Title", "Meeting With"]:
+                stats[column] = Counter(
+                    {k: v for k, v in sorted(occurrences_counter.items(), key=lambda item: item[1], reverse=True)})
+            else:
+                stats["Title_no_stopwords" if column == "Title" else "Meeting With_no_stopwords"] = Counter(
+                    {k: v for k, v in sorted(occurrences_counter.items(), key=lambda item: item[1], reverse=True)})
+
 
         return stats
