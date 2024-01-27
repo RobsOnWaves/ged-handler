@@ -16,7 +16,8 @@ import tempfile
 import nltk
 from nltk.corpus import stopwords
 from collections import Counter
-
+import random
+import string
 
 
 class MepsHandler:
@@ -120,8 +121,23 @@ class MepsHandler:
                 stats[column] = Counter(
                     {k: v for k, v in sorted(occurrences_counter.items(), key=lambda item: item[1], reverse=True)})
             else:
-                stats["Title_no_stopwords" if column == "Title" else "Meeting With_no_stopwords"] = Counter(
+                stats["Title_no_stopwords" if column == "Title" else "Meeting_With_no_stopwords"] = Counter(
                     {k: v for k, v in sorted(occurrences_counter.items(), key=lambda item: item[1], reverse=True)})
 
-
         return stats
+
+    def get_stats_file(self, data: dict):
+
+        taille = 50
+        caracteres_possibles = string.ascii_letters + string.digits  # Inclut les lettres et les chiffres
+        random_string= ''.join(random.choices(caracteres_possibles, k=taille))
+
+        filename = 'filename' + random_string + '.xlsx'
+
+        with pd.ExcelWriter(filename) as writer:
+            for key, counter in data.items():
+                # Conversion du Counter en DataFrame
+                df = pd.DataFrame(list(counter.items()), columns=['Item', 'Count'])
+                # Écriture du DataFrame dans une feuille Excel
+                df.to_excel(writer, sheet_name=key, index=False)
+        return filename

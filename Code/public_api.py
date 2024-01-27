@@ -625,6 +625,38 @@ async def get_meps_stats(mep_name: Optional[str] = None,
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
 
+
+@app.get("/meps_stats_file",
+         description="get meps stats file")
+async def get_meps_stats_file(mep_name: Optional[str] = None,
+                        national_political_group: Optional[str] = None,
+                        political_group: Optional[str] = None,
+                        title: Optional[str] = None,
+                        place: Optional[str] = None,
+                        meeting_with: Optional[str] = None,
+                        start_date: Optional[datetime] = None,
+                        end_date: Optional[datetime] = None,
+                        current_user: User = Depends(get_current_active_user)):
+    if current_user.role in ['admin', 'meps']:
+        try:
+            data = await get_meps_stats(mep_name,
+                           national_political_group,
+                           political_group,
+                           title,
+                           place,
+                           meeting_with,
+                           start_date,
+                           end_date,
+                           current_user)
+
+            return FileResponse(meps_handler.get_stats_file(data))
+
+        except Exception as e:
+            print("get_meps_stats_file : " + str(e), flush=True)
+            raise HTTPException(status_code=404, detail=messages.nok_string_raw)
+    else:
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
+
 @app.post("/logout")
 async def logout():
     return {"message": "Disconnected, please log in again"}

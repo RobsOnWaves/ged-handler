@@ -320,8 +320,6 @@ class MongoDbGed:
                 if not isinstance(val, str):
                     val = str(val)
                 # Tronquer la chaîne si elle dépasse 50 caractères et ajouter "..."
-                if len(val) > 50:
-                    val = val[:50] + "..."
                 valeurs_conformes.append(val)
 
             valeurs_dedupliquees[field] = valeurs_conformes
