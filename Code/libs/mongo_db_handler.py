@@ -394,12 +394,8 @@ class MongoDbGed:
 
                 if 'Date' in df.columns:
                     df['Date'] = df['Date'].dt.strftime('%d/%m/%Y')
-                else:
-                    print('No Date column')
 
-                if not data:
-                    print('No data for this date' + str(date))
-                else:
+                if data:
                     cumulated_data[date[0].strftime('%Y-%m-%d')] = df
 
             return cumulated_data
