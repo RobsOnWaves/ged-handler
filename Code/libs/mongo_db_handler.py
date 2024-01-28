@@ -347,3 +347,63 @@ class MongoDbGed:
             print("Exception in getting meps documents in Mongo" + str(e))
             return {"ged_insert_status": "Exception in getting meps documents in Mongo" + str(e)}
 
+    def get_df_grouped_by_month(self,
+                                db_name: str,
+                                collection_name: str,
+                                query: dict,
+                                date_start: datetime.datetime,
+                                date_end: datetime.datetime):
+
+        def get_first_day_of_next_month(date):
+            """ Retourne le premier jour du mois suivant pour une date donnée. """
+            if date.month == 12:
+                return datetime.datetime(date.year + 1, 1, 1)
+            else:
+                return datetime.datetime(date.year, date.month + 1, 1)
+
+        def get_last_day_of_month(date):
+            """ Retourne le dernier jour d'un mois pour une date donnée. """
+            next_month_start = get_first_day_of_next_month(date)
+            return next_month_start - datetime.timedelta(days=1)
+
+        if date_start is None:
+            date_start = datetime.datetime(2010, 1, 1)
+        if date_end is None:
+            date_end = datetime.datetime.now()
+
+
+        client = self.__mongo_client__
+        db = client[db_name]
+        collection = db[collection_name]
+        cumulated_data = {};
+        try:
+
+            current_date = get_first_day_of_next_month(date_start)
+            dates = []
+
+            while current_date < date_end:
+                start_of_month = current_date
+                end_of_month = get_last_day_of_month(current_date)
+                dates.append((start_of_month, end_of_month))
+                current_date = get_first_day_of_next_month(current_date)
+
+            for date in dates:
+                query['Date'] = {'$gte': date[0], '$lte': date[1]}
+                data = list(collection.find(query, {'_id': False}))
+                df = pd.DataFrame(data)
+
+                if 'Date' in df.columns:
+                    df['Date'] = df['Date'].dt.strftime('%d/%m/%Y')
+                else:
+                    print('No Date column')
+
+                if not data:
+                    print('No data for this date' + str(date))
+                else:
+                    cumulated_data[date[0].strftime('%Y-%m-%d')] = df
+
+            return cumulated_data
+
+        except Exception as e:
+            print("Exception in getting meps documents in Mongo" + str(e))
+            return {"ged_insert_status": "Exception in getting meps documents in Mongo" + str(e)}

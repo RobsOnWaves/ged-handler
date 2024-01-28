@@ -615,8 +615,15 @@ async def get_meps_stats(mep_name: Optional[str] = None,
             query['Date'] = {"$lte": end_date}
 
         try:
-            df = mongo_handler.get_df(db_name=db_name, collection_name=collection_name, query=query)
+            df = mongo_handler.get_df(db_name=db_name,
+                                      collection_name=collection_name,
+                                      query=query)
 
+            dfs_grouped_by_month = mongo_handler.get_df_grouped_by_month(db_name=db_name,
+                                                  collection_name=collection_name,
+                                                  query=query,
+                                                  date_start=start_date,
+                                                  date_end=end_date)
             return meps_handler.get_stats(df)
 
         except Exception as e:
