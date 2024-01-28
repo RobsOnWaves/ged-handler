@@ -31,7 +31,7 @@ class MepsHandler:
         self.__collection_name__ = "meps_meetings"
 
     class TimeoutException(Exception):
-            pass
+        pass
 
     def timeout_handler(self):
         raise self.TimeoutException()
@@ -88,13 +88,15 @@ class MepsHandler:
         df = df.replace(to_replace='[-/&()]', value=' ', regex=True)
         df["Meeting Related to Procedure"] = df["Meeting Related to Procedure"].replace(to_replace=pd.NA,
                                                                                         value='Not related to a procedure'
-                                                                                    )
+                                                                                        )
+
         def convert_numbers_to_string(x):
             if isinstance(x, float):
                 return str(x)
             if isinstance(x, int):
                 return str(x)
             return x
+
         def count_words(text_series):
             all_words = []
             for line in text_series:
@@ -104,9 +106,10 @@ class MepsHandler:
             return Counter(all_words)
 
         df = df.map(convert_numbers_to_string)
+        regex_pattern = r'(?i)exchange of views|general exchange of views'
 
         for column in ["Title", "Meeting With"]:
-            occurrences_counter = count_words(df[~df[column].str.contains("Exchange of views")][column])
+            occurrences_counter = count_words(df[~df[column].str.contains(regex_pattern, regex=True)][column])
             stats[column] = Counter(
                 {k: v for k, v in sorted(occurrences_counter.items(), key=lambda item: item[1], reverse=True)})
         for column in ["MEP Name",
@@ -116,7 +119,7 @@ class MepsHandler:
                        "Meeting Related to Procedure",
                        "Title",
                        "Meeting With"]:
-            occurrences_counter = Counter(df[~df[column].str.contains("Exchange of views")][column])
+            occurrences_counter = Counter(df[~df[column].str.contains(regex_pattern, regex=True)][column])
             occurrences_counter_raw = Counter(df[column])
             if column not in ["Title", "Meeting With"]:
                 stats[column] = Counter(
@@ -133,7 +136,7 @@ class MepsHandler:
 
         taille = 50
         caracteres_possibles = string.ascii_letters + string.digits  # Inclut les lettres et les chiffres
-        random_string= ''.join(random.choices(caracteres_possibles, k=taille))
+        random_string = ''.join(random.choices(caracteres_possibles, k=taille))
 
         filename = 'filename' + random_string + '.xlsx'
 
