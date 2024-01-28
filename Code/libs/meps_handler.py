@@ -13,6 +13,11 @@ from openpyxl.styles import Alignment
 from unidecode import unidecode
 import shutil
 import tempfile
+import nltk
+from nltk.corpus import stopwords
+from collections import Counter
+import random
+import string
 
 
 class MepsHandler:
@@ -26,7 +31,7 @@ class MepsHandler:
         self.__collection_name__ = "meps_meetings"
 
     class TimeoutException(Exception):
-            pass
+        pass
 
     def timeout_handler(self):
         raise self.TimeoutException()
@@ -64,3 +69,81 @@ class MepsHandler:
 
     def get_mep_collection_name(self):
         return self.__collection_name__
+
+    def get_stats(self, df: pd.DataFrame):
+        stats = {}
+        nltk.download('stopwords')
+        stop_words = set(stopwords.words('english'))
+        stop_words.update(set(stopwords.words('french')))
+        stop_words.update(set(stopwords.words('spanish')))
+        stop_words.update(set(stopwords.words('italian')))
+        stop_words.update(set(stopwords.words('portuguese')))
+        stop_words.update(set(stopwords.words('german')))
+        stop_words.update(set(stopwords.words('dutch')))
+        stop_words.update(set(stopwords.words('russian')))
+        stop_words.update(set(stopwords.words('finnish')))
+        stop_words.update(set(stopwords.words('danish')))
+        stop_words.update(["meeting", "staff", "directive"])
+
+        df = df.replace(to_replace='[-/&()]', value=' ', regex=True)
+        df["Meeting Related to Procedure"] = df["Meeting Related to Procedure"].replace(to_replace=pd.NA,
+                                                                                        value='Not related to a procedure'
+                                                                                        )
+
+        def convert_numbers_to_string(x):
+            if isinstance(x, float):
+                return str(x)
+            if isinstance(x, int):
+                return str(x)
+            return x
+
+        def count_words(text_series):
+            all_words = []
+            for line in text_series:
+                words = line.lower().split()
+                words = [word.strip('.,;!') for word in words if word.lower() not in stop_words]
+                all_words.extend(words)
+            return Counter(all_words)
+
+        df = df.map(convert_numbers_to_string)
+        regex_pattern = r'(?i)exchange of views|general exchange of views'
+
+        for column in ["Title", "Meeting With"]:
+            occurrences_counter = count_words(df[~df[column].str.contains(regex_pattern, regex=True)][column])
+            stats[column] = Counter(
+                {k: v for k, v in sorted(occurrences_counter.items(), key=lambda item: item[1], reverse=True)})
+        for column in ["MEP Name",
+                       "MEP nationalPoliticalGroup",
+                       "MEP politicalGroup",
+                       "Place",
+                       "Meeting Related to Procedure",
+                       "Title",
+                       "Meeting With"]:
+            occurrences_counter = Counter(df[~df[column].str.contains(regex_pattern, regex=True)][column])
+            occurrences_counter_raw = Counter(df[column])
+            if column not in ["Title", "Meeting With"]:
+                stats[column] = Counter(
+                    {k: v for k, v in sorted(occurrences_counter.items(), key=lambda item: item[1], reverse=True)})
+            else:
+                stats["Title_no_stopwords" if column == "Title" else "Meeting_With_no_stopwords"] = Counter(
+                    {k: v for k, v in sorted(occurrences_counter.items(), key=lambda item: item[1], reverse=True)})
+                stats["Title_unfiltered" if column == "Title" else "Meeting_With_unfiltered"] = Counter(
+                    {k: v for k, v in sorted(occurrences_counter_raw.items(), key=lambda item: item[1], reverse=True)})
+
+        return stats
+
+    def get_stats_file(self, data: dict):
+
+        taille = 50
+        caracteres_possibles = string.ascii_letters + string.digits  # Inclut les lettres et les chiffres
+        random_string = ''.join(random.choices(caracteres_possibles, k=taille))
+
+        filename = 'filename' + random_string + '.xlsx'
+
+        with pd.ExcelWriter(filename) as writer:
+            for key, counter in data.items():
+                # Conversion du Counter en DataFrame
+                df = pd.DataFrame(list(counter.items()), columns=['Item', 'Count'])
+                # Écriture du DataFrame dans une feuille Excel
+                df.to_excel(writer, sheet_name=key, index=False)
+        return filename
