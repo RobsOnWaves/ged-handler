@@ -381,7 +381,7 @@ class MongoDbGed:
             current_date = get_first_day_of_next_month(date_start)
             dates = []
 
-            while current_date < date_end:
+            while current_date < date_end.replace(tzinfo=None):
                 start_of_month = current_date
                 end_of_month = get_last_day_of_month(current_date)
                 dates.append((start_of_month, end_of_month))
