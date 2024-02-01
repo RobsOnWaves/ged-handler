@@ -57,7 +57,7 @@ except Exception as e:
     print(e)
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 JSON_EXTENSION = ".json"
 
 
@@ -615,9 +615,22 @@ async def get_meps_stats(mep_name: Optional[str] = None,
             query['Date'] = {"$lte": end_date}
 
         try:
-            df = mongo_handler.get_df(db_name=db_name, collection_name=collection_name, query=query)
+            df = mongo_handler.get_df(db_name=db_name,
+                                      collection_name=collection_name,
+                                      query=query)
 
-            return meps_handler.get_stats(df)
+            dfs_grouped_by_month = mongo_handler.get_df_grouped_by_month(db_name=db_name,
+                                                  collection_name=collection_name,
+                                                  query=query,
+                                                  date_start=start_date,
+                                                  date_end=end_date)
+            dfs_grouped_by_month_stats = {}
+            for date in dfs_grouped_by_month.keys():
+                dfs_grouped_by_month_stats[date] = meps_handler.get_stats(dfs_grouped_by_month[date])
+
+            global_stats = meps_handler.get_stats(df)
+            global_stats['meps_stats_grouped_by_month'] = dfs_grouped_by_month_stats
+            return global_stats
 
         except Exception as e:
             print("get_meps_stats : " + str(e), flush=True)
