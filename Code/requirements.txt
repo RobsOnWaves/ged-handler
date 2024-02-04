@@ -51,3 +51,4 @@ urllib3==2.1.0
 uvicorn==0.20.0
 wsproto==1.2.0
 XlsxWriter==3.1.9
+xmltodict==0.13.0
