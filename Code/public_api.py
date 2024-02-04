@@ -21,6 +21,8 @@ import json
 import logging
 from pythonjsonlogger import jsonlogger
 import time
+import xmltodict
+import requests
 from typing import Optional
 
 
@@ -666,6 +668,26 @@ async def get_meps_stats_file(mep_name: Optional[str] = None,
 
         except Exception as e:
             print("get_meps_stats_file : " + str(e), flush=True)
+            raise HTTPException(status_code=404, detail=messages.nok_string_raw)
+    else:
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
+
+
+@app.post("/fetch-and-store-xml-data")
+async def fetch_and_store_xml_data(current_user: User = Depends(get_current_active_user)):
+    if current_user.role in ['admin']:
+        try:
+            # Fetch XML data
+            response = requests.get("https://www.hatvp.fr/livraison/merge/declarations.xml")
+            data = xmltodict.parse(response.content)
+
+            # Process and integrate data into MongoDB (pseudo code)
+            mongo_handler.insert_xml_data_into_mongo(data)  # Implement this method in MongoDbGed class
+            return {'response': messages.build_ok_action_string(user_name=current_user.username)}
+            return {'response': messages.build_ok_action_string(user_name=current_user.username)}
+
+        except Exception as e:
+            print("fetch_and_store_xml_data : " + str(e), flush=True)
             raise HTTPException(status_code=404, detail=messages.nok_string_raw)
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)

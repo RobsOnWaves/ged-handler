@@ -5,7 +5,7 @@ from libs.messages import Messages
 import pandas as pd
 import datetime
 import copy
-
+import time
 
 class MongoDbGed:
 
@@ -17,6 +17,8 @@ class MongoDbGed:
         self.__mongo_client__ = MongoClient(self.__connection_string__)
         self.__messages__ = Messages()
         self.__exception_message__ = "MongoDB error Exception: "
+        self.__hatvp_db_name__ = "hatvp"
+        self.__hatvp_collection_name__ = "hatvp_collection"
 
     def get_gold_coeffs(self):
         db = self.__mongo_client__.gold_coeffs
@@ -371,7 +373,6 @@ class MongoDbGed:
         if date_end is None:
             date_end = datetime.datetime.now()
 
-
         client = self.__mongo_client__
         db = client[db_name]
         collection = db[collection_name]
@@ -403,3 +404,17 @@ class MongoDbGed:
         except Exception as e:
             print("Exception in getting meps documents in Mongo" + str(e))
             return {"ged_insert_status": "Exception in getting meps documents in Mongo" + str(e)}
+
+    def insert_xml_data_into_mongo(self, data):
+        client = self.__mongo_client__
+        db = client[self.__hatvp_db_name__]
+
+        timestamp_utc = int(time.time())
+
+        collection = db[str(timestamp_utc) + "_" + self.__hatvp_collection_name__]
+
+        list = data['declarations']['declaration']
+
+        result = collection.insert_many(list)  # Assuming data is a list of dictionaries
+
+        return result.inserted_ids
