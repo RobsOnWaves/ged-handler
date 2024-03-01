@@ -594,17 +594,13 @@ async def get_meps_stats(mep_name: Optional[str] = None,
         db_name = meps_handler.get_mep_db_name()
         collection_name = meps_handler.get_mep_collection_name()
 
-        def wild_card(word_to_search: str) :
-            word_to_search = re.escape(word_to_search)
-            return {"$regex": ".*" + word_to_search + ".*", "$options": "i"}
-
         query = {
-            'MEP Name': wild_card(mep_name) if mep_name is not None else wild_card(''),
-            'MEP nationalPoliticalGroup': wild_card(national_political_group) if national_political_group is not None else wild_card(''),
-            'MEP politicalGroup': wild_card(political_group) if political_group is not None else wild_card(''),
-            'Title': wild_card(title) if title is not None else wild_card(''),
-            'Place': wild_card(place) if place is not None else wild_card(''),
-            'Meeting With': wild_card(meeting_with) if meeting_with is not None else wild_card('')
+            'MEP Name': mongo_handler.wild_card(mep_name) if mep_name is not None else mongo_handler.wild_card(''),
+            'MEP nationalPoliticalGroup': mongo_handler.wild_card(national_political_group) if national_political_group is not None else mongo_handler.wild_card(''),
+            'MEP politicalGroup': mongo_handler.wild_card(political_group) if political_group is not None else mongo_handler.wild_card(''),
+            'Title': mongo_handler.wild_card(title) if title is not None else mongo_handler.wild_card(''),
+            'Place': mongo_handler.wild_card(place) if place is not None else mongo_handler.wild_card(''),
+            'Meeting With': mongo_handler.wild_card(meeting_with) if meeting_with is not None else mongo_handler.wild_card('')
         }
 
         if start_date and end_date:
@@ -669,6 +665,71 @@ async def get_meps_stats_file(mep_name: Optional[str] = None,
             raise HTTPException(status_code=404, detail=messages.nok_string_raw)
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
+
+
+
+@app.get("/reports_stats",
+         description="get reports stats")
+async def get_reports_stats(query: meps_handler.ReportStatsQuery = Depends(),
+                        current_user: User = Depends(get_current_active_user)):
+    if current_user.role not in ['admin', 'meps']:
+        raise HTTPException(status_code=403, detail=messages.denied_entry)
+
+    mongo_query = {}
+
+    # Ajouter conditionnellement chaque champ à la requête si la valeur n'est pas None
+    if query.people_names_counted is not None:
+        mongo_query['people_names_counted'] = {"$in": [re.compile(term, re.IGNORECASE) for term in query.people_names_counted]}
+
+    if query.locations_counted is not None:
+        mongo_query['locations_counted'] = {"$in": [re.compile(term, re.IGNORECASE) for term in query.locations_counted]}
+
+    if query.money_counted is not None:
+        mongo_query['money_counted'] = {"$in": [re.compile(term, re.IGNORECASE) for term in query.money_counted]}
+
+    if query.companies_counted is not None:
+        mongo_query['companies_counted'] = {"$in": [re.compile(term, re.IGNORECASE) for term in query.companies_counted]}
+
+    if query.political_entities_counted is not None:
+        mongo_query['political_entities_counted'] = {"$in": [re.compile(term, re.IGNORECASE) for term in query.political_entities_counted]}
+
+    if query.counted_words is not None:
+        mongo_query['counted_words'] = {"$in": [re.compile(term, re.IGNORECASE) for term in query.counted_words]}
+
+    if query.start_date and query.end_date:
+        mongo_query['Date'] = {"$gte": query.start_date, "$lte": query.end_date}
+    elif query.start_date:
+        mongo_query['Date'] = {"$gte": query.start_date}
+    elif query.end_date:
+        mongo_query['Date'] = {"$lte": query.end_date}
+
+    db_name, collection_name = meps_handler.get_reports_db_details()
+
+    rejected_fields_query = { "_id": False, "content": False}
+
+    try:
+        df = mongo_handler.get_df(db_name=db_name,
+                                  collection_name=collection_name,
+                                  query=mongo_query,
+                                  rejected_fields_query=rejected_fields_query)
+
+        dfs_grouped_by_month = mongo_handler.get_df_grouped_by_month(db_name=db_name,
+                                                                     collection_name=collection_name,
+                                                                     query=mongo_query,
+                                                                     date_start=query.start_date,
+                                                                     date_end=query.end_date,
+                                                                     rejected_fields_query=rejected_fields_query)
+        dfs_grouped_by_month_stats = {}
+        for date in dfs_grouped_by_month.keys():
+            dfs_grouped_by_month_stats[date] = meps_handler.get_reports_stats(dfs_grouped_by_month[date])
+
+        global_stats = meps_handler.get_reports_stats(df)
+        global_stats['meps_stats_grouped_by_month'] = dfs_grouped_by_month_stats
+        return global_stats
+
+    except Exception as e:
+        print("get_meps_stats : " + str(e), flush=True)
+        raise HTTPException(status_code=404, detail=messages.nok_string_raw)
 
 @app.post("/logout")
 async def logout():

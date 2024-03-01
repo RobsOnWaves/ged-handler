@@ -5,6 +5,7 @@ from libs.messages import Messages
 import pandas as pd
 import datetime
 import copy
+import re
 
 
 class MongoDbGed:
@@ -327,14 +328,17 @@ class MongoDbGed:
 
         return valeurs_dedupliquees
 
-    def get_df(self, db_name: str, collection_name: str, query: dict):
+    def get_df(self, db_name: str, collection_name: str, query: dict, rejected_fields_query: dict = None):
+
+        if rejected_fields_query is None:
+            rejected_fields_query = {'_id': False}
 
         client = self.__mongo_client__
         db = client[db_name]
         collection = db[collection_name]
 
         try:
-            data = list(collection.find(query, {'_id': False}))
+            data = list(collection.find(query, rejected_fields_query))
             df = pd.DataFrame(data)
             if 'Date' in df.columns:
                 df['Date'] = df['Date'].dt.strftime('%d/%m/%Y')
@@ -347,12 +351,21 @@ class MongoDbGed:
             print("Exception in getting meps documents in Mongo" + str(e))
             return {"ged_insert_status": "Exception in getting meps documents in Mongo" + str(e)}
 
+
+    def wild_card(self, word_to_search: str):
+        word_to_search = re.escape(word_to_search)
+        return {"$regex": ".*" + word_to_search + ".*", "$options": "i"}
+
     def get_df_grouped_by_month(self,
                                 db_name: str,
                                 collection_name: str,
                                 query: dict,
                                 date_start: datetime.datetime,
-                                date_end: datetime.datetime):
+                                date_end: datetime.datetime,
+                                rejected_fields_query: dict = None):
+
+        if rejected_fields_query is None:
+            rejected_fields_query = {'_id': False}
 
         def get_first_day_of_next_month(date):
             """ Retourne le premier jour du mois suivant pour une date donnée. """
@@ -389,7 +402,7 @@ class MongoDbGed:
 
             for date in dates:
                 query['Date'] = {'$gte': date[0], '$lte': date[1]}
-                data = list(collection.find(query, {'_id': False}))
+                data = list(collection.find(query, rejected_fields_query))
                 df = pd.DataFrame(data)
 
                 if 'Date' in df.columns:

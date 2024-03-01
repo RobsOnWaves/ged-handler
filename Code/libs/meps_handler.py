@@ -18,6 +18,8 @@ from nltk.corpus import stopwords
 from collections import Counter
 import random
 import string
+from pydantic import BaseModel, Field
+from typing import Optional, List
 
 
 class MepsHandler:
@@ -29,6 +31,8 @@ class MepsHandler:
                                    "Meeting With", "Meeting Related to Procedure"]
         self.__mep_db_name__ = "MEPS"
         self.__collection_name__ = "meps_meetings"
+        self.__reports_db_name__ = "your_database"
+        self.__reports_collection_name__ = "your_collection"
 
     class TimeoutException(Exception):
         pass
@@ -69,6 +73,24 @@ class MepsHandler:
 
     def get_mep_collection_name(self):
         return self.__collection_name__
+
+    def get_reports_db_details(self):
+        return self.__reports_db_name__, self.__reports_collection_name__
+
+    class ReportStatsQuery(BaseModel):
+        people_names_counted: Optional[List[str]] = Field(default=None, description="Count of people names mentioned")
+        locations_counted: Optional[List[str]] = Field(default=None, description="Count of locations mentioned")
+        money_counted: Optional[List[str]] = Field(default=None, description="Count of money amounts mentioned")
+        companies_counted: Optional[List[str]] = Field(default=None, description="Count of companies mentioned")
+        political_entities_counted: Optional[List[str]] = Field(default=None, description="Count of words mentioned")
+        counted_words: Optional[List[str]] = Field(default=None, description="Count of words mentioned")
+        start_date: Optional[datetime.datetime] = None
+        end_date: Optional[datetime.datetime] = None
+
+
+    def get_reports_stats(self, df: pd.DataFrame):
+        report_stats = {}
+
 
     def get_stats(self, df: pd.DataFrame):
         stats = {}
