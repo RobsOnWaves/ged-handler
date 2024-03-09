@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Union
 from enum import Enum
-from fastapi import Depends, FastAPI, HTTPException, status, Form, UploadFile, Request
+from fastapi import Depends, FastAPI, HTTPException, status, Form, UploadFile, Request, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse, RedirectResponse
 from jose import JWTError, jwt
@@ -21,7 +21,7 @@ import json
 import logging
 from pythonjsonlogger import jsonlogger
 import time
-from typing import Optional
+from typing import Optional, Annotated, List
 
 
 class Roles(str, Enum):
@@ -82,6 +82,17 @@ class User(BaseModel):
 
 class UserInDB(User):
     hashed_password: str
+
+
+class ReportStatsQuery(BaseModel):
+    people_names_counted: Optional[List[str]] = Query(None)
+    locations_counted: Optional[List[str]] = Query(None)
+    money_counted: Optional[List[str]] = Query(None)
+    companies_counted: Optional[List[str]] = Query(None)
+    political_entities_counted: Optional[List[str]] = Query(None)
+    counted_words: Optional[List[str]] = Query(None)
+    start_date: Optional[datetime] = Query(None)
+    end_date: Optional[datetime] = Query(None)
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -525,13 +536,14 @@ async def get_meps_file(mep_name: Optional[str] = None,
         db_name = meps_handler.get_mep_db_name()
         collection_name = meps_handler.get_mep_collection_name()
 
-        def wild_card(word_to_search: str) :
+        def wild_card(word_to_search: str):
             word_to_search = re.escape(word_to_search)
             return {"$regex": ".*" + word_to_search + ".*", "$options": "i"}
 
         query = {
             'MEP Name': wild_card(mep_name) if mep_name is not None else wild_card(''),
-            'MEP nationalPoliticalGroup': wild_card(national_political_group) if national_political_group is not None else wild_card(''),
+            'MEP nationalPoliticalGroup': wild_card(
+                national_political_group) if national_political_group is not None else wild_card(''),
             'MEP politicalGroup': wild_card(political_group) if political_group is not None else wild_card(''),
             'Title': wild_card(title) if title is not None else wild_card(''),
             'Place': wild_card(place) if place is not None else wild_card(''),
@@ -582,25 +594,28 @@ async def get_meps_file_selected_fields(current_user: User = Depends(get_current
 @app.get("/meps_stats",
          description="get meps stats")
 async def get_meps_stats(mep_name: Optional[str] = None,
-                        national_political_group: Optional[str] = None,
-                        political_group: Optional[str] = None,
-                        title: Optional[str] = None,
-                        place: Optional[str] = None,
-                        meeting_with: Optional[str] = None,
-                        start_date: Optional[datetime] = None,
-                        end_date: Optional[datetime] = None,
-                        current_user: User = Depends(get_current_active_user)):
+                         national_political_group: Optional[str] = None,
+                         political_group: Optional[str] = None,
+                         title: Optional[str] = None,
+                         place: Optional[str] = None,
+                         meeting_with: Optional[str] = None,
+                         start_date: Optional[datetime] = None,
+                         end_date: Optional[datetime] = None,
+                         current_user: User = Depends(get_current_active_user)):
     if current_user.role in ['admin', 'meps']:
         db_name = meps_handler.get_mep_db_name()
         collection_name = meps_handler.get_mep_collection_name()
 
         query = {
             'MEP Name': mongo_handler.wild_card(mep_name) if mep_name is not None else mongo_handler.wild_card(''),
-            'MEP nationalPoliticalGroup': mongo_handler.wild_card(national_political_group) if national_political_group is not None else mongo_handler.wild_card(''),
-            'MEP politicalGroup': mongo_handler.wild_card(political_group) if political_group is not None else mongo_handler.wild_card(''),
+            'MEP nationalPoliticalGroup': mongo_handler.wild_card(
+                national_political_group) if national_political_group is not None else mongo_handler.wild_card(''),
+            'MEP politicalGroup': mongo_handler.wild_card(
+                political_group) if political_group is not None else mongo_handler.wild_card(''),
             'Title': mongo_handler.wild_card(title) if title is not None else mongo_handler.wild_card(''),
             'Place': mongo_handler.wild_card(place) if place is not None else mongo_handler.wild_card(''),
-            'Meeting With': mongo_handler.wild_card(meeting_with) if meeting_with is not None else mongo_handler.wild_card('')
+            'Meeting With': mongo_handler.wild_card(
+                meeting_with) if meeting_with is not None else mongo_handler.wild_card('')
         }
 
         if start_date and end_date:
@@ -616,10 +631,10 @@ async def get_meps_stats(mep_name: Optional[str] = None,
                                       query=query)
 
             dfs_grouped_by_month = mongo_handler.get_df_grouped_by_month(db_name=db_name,
-                                                  collection_name=collection_name,
-                                                  query=query,
-                                                  date_start=start_date,
-                                                  date_end=end_date)
+                                                                         collection_name=collection_name,
+                                                                         query=query,
+                                                                         date_start=start_date,
+                                                                         date_end=end_date)
             dfs_grouped_by_month_stats = {}
             for date in dfs_grouped_by_month.keys():
                 dfs_grouped_by_month_stats[date] = meps_handler.get_stats(dfs_grouped_by_month[date])
@@ -638,25 +653,25 @@ async def get_meps_stats(mep_name: Optional[str] = None,
 @app.get("/meps_stats_file",
          description="get meps stats file")
 async def get_meps_stats_file(mep_name: Optional[str] = None,
-                        national_political_group: Optional[str] = None,
-                        political_group: Optional[str] = None,
-                        title: Optional[str] = None,
-                        place: Optional[str] = None,
-                        meeting_with: Optional[str] = None,
-                        start_date: Optional[datetime] = None,
-                        end_date: Optional[datetime] = None,
-                        current_user: User = Depends(get_current_active_user)):
+                              national_political_group: Optional[str] = None,
+                              political_group: Optional[str] = None,
+                              title: Optional[str] = None,
+                              place: Optional[str] = None,
+                              meeting_with: Optional[str] = None,
+                              start_date: Optional[datetime] = None,
+                              end_date: Optional[datetime] = None,
+                              current_user: User = Depends(get_current_active_user)):
     if current_user.role in ['admin', 'meps']:
         try:
             data = await get_meps_stats(mep_name,
-                           national_political_group,
-                           political_group,
-                           title,
-                           place,
-                           meeting_with,
-                           start_date,
-                           end_date,
-                           current_user)
+                                        national_political_group,
+                                        political_group,
+                                        title,
+                                        place,
+                                        meeting_with,
+                                        start_date,
+                                        end_date,
+                                        current_user)
 
             return FileResponse(meps_handler.get_stats_file(data))
 
@@ -667,45 +682,76 @@ async def get_meps_stats_file(mep_name: Optional[str] = None,
         raise HTTPException(status_code=403, detail=messages.denied_entry)
 
 
-
-@app.get("/reports_stats",
-         description="get reports stats")
-async def get_reports_stats(query: meps_handler.ReportStatsQuery = Depends(),
-                        current_user: User = Depends(get_current_active_user)):
+@app.get("/reports_stats", description="get reports stats")
+async def get_reports_stats(
+        people_names_counted: Optional[List[str]] = Query(None),
+        locations_counted: Optional[List[str]] = Query(None),
+        money_counted: Optional[List[str]] = Query(None),
+        companies_counted: Optional[List[str]] = Query(None),
+        political_entities_counted: Optional[List[str]] = Query(None),
+        counted_words: Optional[List[str]] = Query(None),
+        start_date: Optional[datetime] = Query(None),
+        end_date: Optional[datetime] = Query(None),
+        or_condition: Optional[bool] = Query(False),
+        current_user: User = Depends(get_current_active_user)):
     if current_user.role not in ['admin', 'meps']:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
 
     mongo_query = {}
-
+    conditions = []
     # Ajouter conditionnellement chaque champ à la requête si la valeur n'est pas None
-    if query.people_names_counted is not None:
-        mongo_query['people_names_counted'] = {"$in": [re.compile(term, re.IGNORECASE) for term in query.people_names_counted]}
+    if people_names_counted is not None:
+        people_names_counted = list(map(lambda x: x.lower(), people_names_counted))
+        for people_name in people_names_counted:
+            condition = {"people_names_counted." + people_name: {"$exists": True}}
+            conditions.append(condition)
 
-    if query.locations_counted is not None:
-        mongo_query['locations_counted'] = {"$in": [re.compile(term, re.IGNORECASE) for term in query.locations_counted]}
+    if locations_counted is not None:
+        locations_counted = list(map(lambda x: x.lower(), locations_counted))
+        for location in locations_counted:
+            condition = {"locations_counted." + location: {"$exists": True}}
+            conditions.append(condition)
 
-    if query.money_counted is not None:
-        mongo_query['money_counted'] = {"$in": [re.compile(term, re.IGNORECASE) for term in query.money_counted]}
 
-    if query.companies_counted is not None:
-        mongo_query['companies_counted'] = {"$in": [re.compile(term, re.IGNORECASE) for term in query.companies_counted]}
+    if money_counted is not None:
+        money_counted = list(map)(lambda x: x.lower(), money_counted)
+        for money in money_counted:
+            condition = {"money_counted." + money: {"$exists": True}}
+            conditions.append(condition)
 
-    if query.political_entities_counted is not None:
-        mongo_query['political_entities_counted'] = {"$in": [re.compile(term, re.IGNORECASE) for term in query.political_entities_counted]}
+    if companies_counted is not None:
+        companies_counted = list(map(lambda x: x.lower(), companies_counted))
+        for company in companies_counted:
+            condition = {"companies_counted." + company: {"$exists": True}}
+            conditions.append(condition)
 
-    if query.counted_words is not None:
-        mongo_query['counted_words'] = {"$in": [re.compile(term, re.IGNORECASE) for term in query.counted_words]}
+    if political_entities_counted is not None:
+        political_entities_counted = list(map(lambda x: x.lower(), political_entities_counted))
+        for political_entity in political_entities_counted:
+            condition = {"political_entities_counted." + political_entity: {"$exists": True}}
+            conditions.append(condition)
 
-    if query.start_date and query.end_date:
-        mongo_query['Date'] = {"$gte": query.start_date, "$lte": query.end_date}
-    elif query.start_date:
-        mongo_query['Date'] = {"$gte": query.start_date}
-    elif query.end_date:
-        mongo_query['Date'] = {"$lte": query.end_date}
+    if counted_words is not None:
+        counted_words = list(map(lambda x: x.lower(), counted_words))
+        for word in counted_words:
+            condition = {"counted_words." + word: {"$exists": True}}
+            conditions.append(condition)
+
+    if or_condition:
+        mongo_query["$or"] = conditions
+    else:
+        mongo_query['$and'] = conditions
+
+    if start_date and end_date:
+        mongo_query['Date'] = {"$gte": start_date, "$lte": end_date}
+    elif start_date:
+        mongo_query['Date'] = {"$gte": start_date}
+    elif end_date:
+        mongo_query['Date'] = {"$lte": end_date}
 
     db_name, collection_name = meps_handler.get_reports_db_details()
 
-    rejected_fields_query = { "_id": False, "content": False}
+    rejected_fields_query = {"_id": False, "content": False}
 
     try:
         df = mongo_handler.get_df(db_name=db_name,
@@ -716,8 +762,8 @@ async def get_reports_stats(query: meps_handler.ReportStatsQuery = Depends(),
         dfs_grouped_by_month = mongo_handler.get_df_grouped_by_month(db_name=db_name,
                                                                      collection_name=collection_name,
                                                                      query=mongo_query,
-                                                                     date_start=query.start_date,
-                                                                     date_end=query.end_date,
+                                                                     date_start=start_date,
+                                                                     date_end=end_date,
                                                                      rejected_fields_query=rejected_fields_query)
         dfs_grouped_by_month_stats = {}
         for date in dfs_grouped_by_month.keys():
@@ -730,6 +776,7 @@ async def get_reports_stats(query: meps_handler.ReportStatsQuery = Depends(),
     except Exception as e:
         print("get_meps_stats : " + str(e), flush=True)
         raise HTTPException(status_code=404, detail=messages.nok_string_raw)
+
 
 @app.post("/logout")
 async def logout():

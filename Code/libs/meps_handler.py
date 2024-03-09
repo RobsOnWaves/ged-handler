@@ -6,7 +6,7 @@ from io import BytesIO
 import numpy as np
 import pandas as pd
 from docx import Document
-from fastapi import UploadFile
+from fastapi import UploadFile, Query
 from libs.messages import Messages
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
@@ -19,7 +19,7 @@ from collections import Counter
 import random
 import string
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Annotated
 
 
 class MepsHandler:
@@ -31,8 +31,8 @@ class MepsHandler:
                                    "Meeting With", "Meeting Related to Procedure"]
         self.__mep_db_name__ = "MEPS"
         self.__collection_name__ = "meps_meetings"
-        self.__reports_db_name__ = "your_database"
-        self.__reports_collection_name__ = "your_collection"
+        self.__reports_db_name__ = "reports"
+        self.__reports_collection_name__ = "reports_collection"
 
     class TimeoutException(Exception):
         pass
@@ -76,16 +76,6 @@ class MepsHandler:
 
     def get_reports_db_details(self):
         return self.__reports_db_name__, self.__reports_collection_name__
-
-    class ReportStatsQuery(BaseModel):
-        people_names_counted: Optional[List[str]] = Field(default=None, description="Count of people names mentioned")
-        locations_counted: Optional[List[str]] = Field(default=None, description="Count of locations mentioned")
-        money_counted: Optional[List[str]] = Field(default=None, description="Count of money amounts mentioned")
-        companies_counted: Optional[List[str]] = Field(default=None, description="Count of companies mentioned")
-        political_entities_counted: Optional[List[str]] = Field(default=None, description="Count of words mentioned")
-        counted_words: Optional[List[str]] = Field(default=None, description="Count of words mentioned")
-        start_date: Optional[datetime.datetime] = None
-        end_date: Optional[datetime.datetime] = None
 
 
     def get_reports_stats(self, df: pd.DataFrame):
