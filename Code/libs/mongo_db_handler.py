@@ -367,6 +367,8 @@ class MongoDbGed:
         if rejected_fields_query is None:
             rejected_fields_query = {'_id': False}
 
+        date_frames = []
+
         def get_first_day_of_next_month(date):
             """ Retourne le premier jour du mois suivant pour une date donnée. """
             if date.month == 12:
@@ -401,14 +403,27 @@ class MongoDbGed:
                 current_date = get_first_day_of_next_month(current_date)
 
             for date in dates:
-                query['Date'] = {'$gte': date[0], '$lte': date[1]}
-                data = list(collection.find(query, rejected_fields_query))
-                df = pd.DataFrame(data)
+                date_frames.append({"Date": {'$gte': date[0], '$lte': date[1]}})
 
-                if 'Date' in df.columns:
-                    df['Date'] = df['Date'].dt.strftime('%d/%m/%Y')
+                date_frames.append({"estimated_date": {'$gte': date[0], '$lte': date[1]}})
+
+                or_date_frames = {"$or": date_frames}
+
+                query_with_dates = {"$and": [or_date_frames, query]}
+                data = list(collection.find(query_with_dates, rejected_fields_query))
 
                 if data:
+
+                    df = pd.DataFrame(data)
+
+                    if 'Date' in df.columns:
+                        df['Date'] = df['Date'].dt.strftime('%d/%m/%Y')
+                    elif 'estimated_date' in df.columns:
+                        df['Date'] = df['estimated_date'].dt.strftime('%d/%m/%Y')
+
+                    else:
+                        print('No Date column')
+
                     cumulated_data[date[0].strftime('%Y-%m-%d')] = df
 
             return cumulated_data
