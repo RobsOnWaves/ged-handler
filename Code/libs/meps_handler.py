@@ -20,7 +20,7 @@ import random
 import string
 from pydantic import BaseModel, Field
 from typing import Optional, List, Annotated
-
+from functools import reduce
 
 class MepsHandler:
     def __init__(self):
@@ -79,8 +79,42 @@ class MepsHandler:
 
 
     def get_reports_stats(self, df: pd.DataFrame):
-        report_stats = {}
 
+        def merge_dicts(d1, d2):
+            for key in d2:
+                if key in d1:
+                    # Personnalisez ici comment vous voulez gérer les clés en commun
+                    # Exemple : additionner les valeurs
+                    d1[key] += d2[key]
+                else:
+                    d1[key] = d2[key]
+            return d1
+
+        languages = df['language'].unique()
+
+        languages = np.delete(languages, np.where(languages == ''))
+
+        languages = np.delete(languages, np.where(languages == 'nan'))
+
+        dict_out = {}
+
+        for language in languages:
+
+            df_local = df[df['language'] == language]
+
+            dict_out[language] = {}
+
+            counted_columns = [col for col in df_local.columns if 'counted' in col]
+
+            for column in counted_columns:
+
+                counted_category = reduce(merge_dicts, df[column])
+
+                dict_out[language][column] = counted_category
+
+                dict_out[language][column + '_percentage'] = {key: round(100 * value / sum(counted_category.values()), 2) for key, value in counted_category.items()}
+
+        return dict_out
 
     def get_stats(self, df: pd.DataFrame):
         stats = {}

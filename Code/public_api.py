@@ -22,6 +22,8 @@ import logging
 from pythonjsonlogger import jsonlogger
 import time
 from typing import Optional, Annotated, List
+from tqdm import tqdm
+import gc
 
 
 class Roles(str, Enum):
@@ -737,10 +739,11 @@ async def get_reports_stats(
             condition = {"counted_words." + word: {"$exists": True}}
             conditions.append(condition)
 
-    if or_condition:
-        mongo_query["$or"] = conditions
-    else:
-        mongo_query['$and'] = conditions
+    if mongo_query != {}:
+        if or_condition:
+            mongo_query["$or"] = conditions
+        else:
+            mongo_query['$and'] = conditions
 
     if start_date and end_date:
         mongo_query['Date'] = {"$gte": start_date, "$lte": end_date}
@@ -751,13 +754,9 @@ async def get_reports_stats(
 
     db_name, collection_name = meps_handler.get_reports_db_details()
 
-    rejected_fields_query = {"_id": False, "content": False}
+    rejected_fields_query = {"_id": False, "content": False, "path": False, "content_hash": False}
 
     try:
-        df = mongo_handler.get_df(db_name=db_name,
-                                  collection_name=collection_name,
-                                  query=mongo_query,
-                                  rejected_fields_query=rejected_fields_query)
 
         dfs_grouped_by_month = mongo_handler.get_df_grouped_by_month(db_name=db_name,
                                                                      collection_name=collection_name,
@@ -766,8 +765,17 @@ async def get_reports_stats(
                                                                      date_end=end_date,
                                                                      rejected_fields_query=rejected_fields_query)
         dfs_grouped_by_month_stats = {}
-        for date in dfs_grouped_by_month.keys():
+
+        for date in tqdm(dfs_grouped_by_month.keys()):
             dfs_grouped_by_month_stats[date] = meps_handler.get_reports_stats(dfs_grouped_by_month[date])
+
+        del dfs_grouped_by_month
+        gc.collect()
+
+        df = mongo_handler.get_df(db_name=db_name,
+                                  collection_name=collection_name,
+                                  query=mongo_query,
+                                  rejected_fields_query=rejected_fields_query)
 
         global_stats = meps_handler.get_reports_stats(df)
         global_stats['meps_stats_grouped_by_month'] = dfs_grouped_by_month_stats
