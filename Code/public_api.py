@@ -24,6 +24,9 @@ import time
 from typing import Optional, Annotated, List
 from tqdm import tqdm
 import gc
+import pandas as pd
+from tqdm import tqdm
+import time
 
 
 class Roles(str, Enum):
@@ -716,7 +719,7 @@ async def get_reports_stats(
 
 
     if money_counted is not None:
-        money_counted = list(map)(lambda x: x.lower(), money_counted)
+        money_counted = list(map(lambda x: x.lower(), money_counted))
         for money in money_counted:
             condition = {"money_counted." + money: {"$exists": True}}
             conditions.append(condition)
@@ -757,8 +760,7 @@ async def get_reports_stats(
     rejected_fields_query = {"_id": False, "content": False, "path": False, "content_hash": False}
 
     try:
-
-        dfs_grouped_by_month = mongo_handler.get_df_grouped_by_month(db_name=db_name,
+        name_date_file = mongo_handler.get_df_grouped_by_month(db_name=db_name,
                                                                      collection_name=collection_name,
                                                                      query=mongo_query,
                                                                      date_start=start_date,
@@ -766,11 +768,21 @@ async def get_reports_stats(
                                                                      rejected_fields_query=rejected_fields_query)
         dfs_grouped_by_month_stats = {}
 
-        for date in tqdm(dfs_grouped_by_month.keys()):
-            dfs_grouped_by_month_stats[date] = meps_handler.get_reports_stats(dfs_grouped_by_month[date])
+        with pd.HDFStore(name_date_file, mode='r') as store:
+            for cle in tqdm(store.keys()):
+                start_time_stats = time.perf_counter()
+                dfs_grouped_by_month_stats[store[cle]['date_requested'][0]] = meps_handler.get_reports_stats(store[cle])
+                end_time_stats = time.perf_counter()
+                print(f"Temps d'exécution de la fonction get_reports_stats : {round(end_time_stats - start_time_stats, 2)}")
 
-        del dfs_grouped_by_month
-        gc.collect()
+        file_to_delete = Path(name_date_file)
+
+        # Vérifier si le fichier existe avant de tenter de le supprimer
+        if file_to_delete.exists():
+            file_to_delete.unlink()
+            print(f"Le fichier {file_to_delete} a été supprimé avec succès.")
+        else:
+            print(f"Le fichier {file_to_delete} n'existe pas.")
 
         df = mongo_handler.get_df(db_name=db_name,
                                   collection_name=collection_name,

@@ -21,6 +21,8 @@ import string
 from pydantic import BaseModel, Field
 from typing import Optional, List, Annotated
 from functools import reduce
+from tqdm import tqdm
+import time
 
 class MepsHandler:
     def __init__(self):
@@ -90,6 +92,7 @@ class MepsHandler:
                     d1[key] = d2[key]
             return d1
 
+        start_time_a = time.perf_counter()
         languages = df['language'].unique()
 
         languages = np.delete(languages, np.where(languages == ''))
@@ -98,21 +101,39 @@ class MepsHandler:
 
         dict_out = {}
 
+        end_time_a = time.perf_counter()
+
+        print(f'Total time A: {round(end_time_a - start_time_a, 2)}')
+
         for language in languages:
 
+
+            start_time_b = time.perf_counter()
             df_local = df[df['language'] == language]
 
             dict_out[language] = {}
 
             counted_columns = [col for col in df_local.columns if 'counted' in col]
-
+            end_time_b = time.perf_counter()
+            print(f'Total time B: {round(end_time_b - start_time_b, 2)}')
             for column in counted_columns:
 
+                start_time_reduce = time.perf_counter()
                 counted_category = reduce(merge_dicts, df[column])
+                end_time_reduce = time.perf_counter()
+                print(f'Reduce time: {round(end_time_reduce - start_time_reduce, 2)}')
 
+                start_time_count = time.perf_counter()
                 dict_out[language][column] = counted_category
+                end_time_count = time.perf_counter()
+                print(f'Count time: {round(end_time_count - start_time_count, 2)}')
 
-                dict_out[language][column + '_percentage'] = {key: round(100 * value / sum(counted_category.values()), 2) for key, value in counted_category.items()}
+                start_time_percentage = time.perf_counter()
+
+                total_count = sum(counted_category.values())
+                dict_out[language][column + '_percentage'] = {key: round(100 * value / total_count, 2) for key, value in counted_category.items()}
+                end_time_percentage = time.perf_counter()
+                print(f'Percentage time: {round(end_time_percentage - start_time_percentage,2)}')
 
         return dict_out
 

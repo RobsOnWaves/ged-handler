@@ -6,7 +6,9 @@ import pandas as pd
 import datetime
 import copy
 import re
-
+from tqdm import tqdm
+from libs.data_tools import DataTools
+import gc
 
 class MongoDbGed:
 
@@ -369,6 +371,8 @@ class MongoDbGed:
 
         date_frames = []
 
+        name_date_file = DataTools.generer_nom_fichier_unique_uuid(prefixe='dataframe_', suffixe='.h5')
+
         def get_first_day_of_next_month(date):
             """ Retourne le premier jour du mois suivant pour une date donnée. """
             if date.month == 12:
@@ -386,7 +390,6 @@ class MongoDbGed:
         if date_end is None:
             date_end = datetime.datetime.now()
 
-
         client = self.__mongo_client__
         db = client[db_name]
         collection = db[collection_name]
@@ -402,7 +405,7 @@ class MongoDbGed:
                 dates.append((start_of_month, end_of_month))
                 current_date = get_first_day_of_next_month(current_date)
 
-            for date in dates:
+            for date in tqdm(dates):
                 date_frames.append({"Date": {'$gte': date[0], '$lte': date[1]}})
 
                 date_frames.append({"estimated_date": {'$gte': date[0], '$lte': date[1]}})
@@ -424,9 +427,15 @@ class MongoDbGed:
                     else:
                         print('No Date column')
 
-                    cumulated_data[date[0].strftime('%Y-%m-%d')] = df
+                    df['date_requested'] = date[0].strftime('%Y-%m-%d')
 
-            return cumulated_data
+                    DataTools.store_df_to_file(df, chemin_fichier=name_date_file)
+
+                    del df
+
+                    gc.collect()
+
+            return name_date_file
 
         except Exception as e:
             print("Exception in getting meps documents in Mongo" + str(e))
