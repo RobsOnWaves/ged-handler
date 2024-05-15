@@ -308,11 +308,15 @@ async def log_requests(request: Request, call_next):
         token = await oauth2_scheme(request)
         user_id = get_user_id_from_token(token) if token else "anonymous"
     except Exception as e:
-        user_id = "error_in_token" + str(e)
+        user_id = "error_in_token_" + str(e)
+
+    # Obtenir l'adresse IP de l'émetteur
+    ip_address = request.client.host
 
     # Continuer le traitement de la requête
     response = await call_next(request)
     process_time = (time.time() - start_time) * 1000
+
     # Logger les informations
     logger.info('Request info', extra={
         "timestamp": datetime.fromtimestamp(start_time).isoformat(),
@@ -322,6 +326,7 @@ async def log_requests(request: Request, call_next):
         'response_status': response.status_code,
         'process_time_ms': process_time,
         'request_body': body_text,
+        'ip_address': ip_address,  # Ajouter l'adresse IP ici
         # Autres informations...
     })
 
