@@ -291,33 +291,30 @@ def mask_sensitive_data_and_exclude_files(body: str) -> str:
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
+    ip_address = request.client.host
 
-    # Vérifier le type de contenu
-    content_type = request.headers.get('content-type')
+    body_text = '[Binary Data or Unsupported Method]'
 
-    # Traiter différemment les données binaires
-    if content_type and ("multipart/form-data" in content_type or "application/octet-stream" in content_type):
-        body_text = '[Binary Data]'
-    else:
-        # Obtenir et nettoyer le corps de la requête pour les types de contenu textuels
-        body = await get_request_body(request)
-        body_text = body.decode('utf-8') if body else ''
-        body_text = mask_sensitive_data_and_exclude_files(body_text)
+    # Vérifier le type de contenu et lire le corps de la requête si ce n'est pas un fichier
+    if request.method in ["POST", "PUT", "PATCH"]:
+        content_type = request.headers.get('content-type', '')
+        if "multipart/form-data" not in content_type and "application/octet-stream" not in content_type:
+            try:
+                body = await request.body()
+                body_text = body.decode('utf-8') if body else '[Empty Body]'
+            except Exception as e:
+                body_text = f"[Error Reading Body: {str(e)}]"
 
+    # Obtenez le token et l'identifiant de l'utilisateur
     try:
         token = await oauth2_scheme(request)
         user_id = get_user_id_from_token(token) if token else "anonymous"
     except Exception as e:
         user_id = "error_in_token_" + str(e)
 
-    # Obtenir l'adresse IP de l'émetteur
-    ip_address = request.client.host
-
-    # Continuer le traitement de la requête
     response = await call_next(request)
     process_time = (time.time() - start_time) * 1000
 
-    # Logger les informations
     logger.info('Request info', extra={
         "timestamp": datetime.fromtimestamp(start_time).isoformat(),
         "user_id": user_id,
@@ -326,8 +323,7 @@ async def log_requests(request: Request, call_next):
         'response_status': response.status_code,
         'process_time_ms': process_time,
         'request_body': body_text,
-        'ip_address': ip_address,  # Ajouter l'adresse IP ici
-        # Autres informations...
+            'ip_address': ip_address,
     })
 
     return response
