@@ -23,13 +23,11 @@ from pythonjsonlogger import jsonlogger
 import time
 from typing import Optional
 
-
 class Roles(str, Enum):
     admin = "admin"
     user = "user"
     gold_digger = "gold_digger"
     meps = "meps"
-
 
 # Configuration du Logger
 logger = logging.getLogger(__name__)
@@ -60,17 +58,14 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 JSON_EXTENSION = ".json"
 
-
 class Token(BaseModel):
     access_token: str
     token_type: str
     name: str
     role: str
 
-
 class TokenData(BaseModel):
     username: Union[str, None] = None
-
 
 class User(BaseModel):
     username: str
@@ -79,10 +74,8 @@ class User(BaseModel):
     disabled: Union[bool, None] = None
     role: str
 
-
 class UserInDB(User):
     hashed_password: str
-
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -102,14 +95,12 @@ code at: [GitHub GED-Handler repo](https://github.com/RobsOnWaves/ged-handler))
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-
 def get_user_id_from_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload.get("sub")  # 'sub' est généralement l'identifiant de l'utilisateur
     except jwt.JWTError:
         return None
-
 
 def log_to_json_file(log_data):
     log_file_path = 'logz.json'
@@ -120,18 +111,14 @@ def log_to_json_file(log_data):
     except Exception as e:
         print(f"Error writing to log file: {e}")
 
-
 def el_parametrizor(mode_debug=False):
     if mode_debug:
         os.environ['URL_MONGO'] = "localhost:27017"
-
         os.environ['USR_MONGO'] = "root"
-
         os.environ['PWD_MONGO'] = "rootmongopwd"
-
         os.environ['URL_FRONT'] = "http://localhost:8080"
 
-el_parametrizor(False)
+el_parametrizor(True)
 
 mongo_handler = MongoDbGed(address=os.environ['URL_MONGO'], user=os.environ['USR_MONGO'],
                            password=os.environ['PWD_MONGO'])
@@ -140,7 +127,6 @@ messages = Messages()
 gold_handler = GoldDigger()
 meps_handler = MepsHandler()
 
-
 def time_window_control(date_start: datetime, date_end: datetime, current_user: User):
     time_window_validated = False
     diff_time = date_end - date_start
@@ -148,19 +134,16 @@ def time_window_control(date_start: datetime, date_end: datetime, current_user: 
     if date_start.date() != date_end.date():
         status_date = "hi " + str(current_user.username) + messages.nok_string + \
                       " the dates of start and stop must be the same"
-
         time_window_validated = False
 
     elif date_start > date_end:
         status_date = "hi " + str(current_user.username) + messages.nok_string + \
                       " you can't finish before you start"
-
         time_window_validated = False
 
     elif diff_time.total_seconds() > 10800.0:
         status_date = "hi " + str(current_user.username) + messages.nok_string + \
                       " for the sake of our servers, time window limited to three hours"
-
         time_window_validated = False
 
     elif date_start > datetime.utcnow() or date_end > datetime.utcnow():
@@ -173,7 +156,6 @@ def time_window_control(date_start: datetime, date_end: datetime, current_user: 
 
     return {'status_date': status_date, 'time_window_validated': time_window_validated}
 
-
 def sanitize_filename(filename: str):
     """
     Nettoie et valide un nom de fichier pour éviter les injections de chemin.
@@ -181,10 +163,8 @@ def sanitize_filename(filename: str):
     """
     return re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)
 
-
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
-
 
 def secure_file_path(filename: str, directory="tmp/"):
     """
@@ -193,16 +173,13 @@ def secure_file_path(filename: str, directory="tmp/"):
     sanitized_filename = sanitize_filename(filename)
     return os.path.join(directory, sanitized_filename)
 
-
 def get_password_hash(password):
     return pwd_context.hash(password)
-
 
 def get_user(db, username: str):
     if username in db:
         user_dict = db[username]
         return UserInDB(**user_dict)
-
 
 def authenticate_user(users_db, username: str, password: str):
     user = get_user(users_db, username)
@@ -211,7 +188,6 @@ def authenticate_user(users_db, username: str, password: str):
     if not verify_password(password, user.hashed_password):
         return False
     return user
-
 
 def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None):
     to_encode = data.copy()
@@ -222,7 +198,6 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
-
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
@@ -243,12 +218,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return user
 
-
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
-
 
 # Configurez le middleware CORS
 app.add_middleware(
@@ -258,7 +231,6 @@ app.add_middleware(
     allow_methods=["*"],  # Les méthodes HTTP autorisées
     allow_headers=["*"],  # Les en-têtes HTTP autorisés
 )
-
 
 async def get_request_body(request: Request):
     body = await request.body()
@@ -277,7 +249,6 @@ async def get_request_body(request: Request):
 
     return body
 
-
 def mask_sensitive_data_and_exclude_files(body: str) -> str:
     # Masquer les données sensibles
     body = re.sub(r'(password=)[^&]*', r'\1[MASKED]', body, flags=re.IGNORECASE)
@@ -286,7 +257,6 @@ def mask_sensitive_data_and_exclude_files(body: str) -> str:
     body = re.sub(r'(upload_file=)[^&]*', '[FILE EXCLUDED]', body, flags=re.IGNORECASE)
 
     return body
-
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -302,6 +272,7 @@ async def log_requests(request: Request, call_next):
             try:
                 body = await request.body()
                 body_text = body.decode('utf-8') if body else '[Empty Body]'
+                body_text = mask_sensitive_data_and_exclude_files(body_text)
             except Exception as e:
                 body_text = f"[Error Reading Body: {str(e)}]"
 
@@ -323,16 +294,14 @@ async def log_requests(request: Request, call_next):
         'response_status': response.status_code,
         'process_time_ms': process_time,
         'request_body': body_text,
-            'ip_address': ip_address,
+        'ip_address': ip_address,
     })
 
     return response
 
-
 @app.get("/")
 async def docs_redirect():
     return RedirectResponse(url='/docs')
-
 
 @app.post("/token", response_model=Token, description="Returns a token after successful authentication")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -349,11 +318,9 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     )
     return {"access_token": access_token, "name": user.full_name, "token_type": "bearer", "role": user.role}
 
-
 @app.get("/users/me/", response_model=User, description="Returns information about the current logged in user")
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
-
 
 @app.post("/create_user", description="Creating a new user, restricted to admin privileges")
 async def create_user(user_name: str = Form(),
@@ -369,7 +336,6 @@ async def create_user(user_name: str = Form(),
     else:
         return {'response': 'Access denied'}
 
-
 @app.post("/ged_file", description="Uploading a ged-file to the database, restricted to admin privileges")
 async def upload_ged_file(file: UploadFile,
                           ged_import_name: str = Form(description="import name: must not exist already"),
@@ -382,7 +348,6 @@ async def upload_ged_file(file: UploadFile,
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
 
-
 @app.get("/ged_stored_collection_to_json_answer", description="Returns a JSON answer from a stored collection")
 async def ged_stored_collection_to_json_answer(ged_collection_name: str,
                                                current_user: User = Depends(get_current_active_user)):
@@ -390,7 +355,6 @@ async def ged_stored_collection_to_json_answer(ged_collection_name: str,
         return mongo_handler.from_mongo_to_ged_list_dict(collection_name=ged_collection_name)
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
-
 
 @app.get("/ged_stored_collection_to_json_file", description="Returns a JSON file from a stored collection")
 async def ged_stored_collection_to_json_file(ged_collection_name: str,
@@ -406,7 +370,6 @@ async def ged_stored_collection_to_json_file(ged_collection_name: str,
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
 
-
 @app.post("/ged_file_to_json_answer", description="Returns a converted JSON file from a ged-file"
                                                   " without storing it in the database")
 async def ged_collection_to_json_answer(file: UploadFile,
@@ -421,7 +384,6 @@ async def ged_collection_to_json_answer(file: UploadFile,
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
 
-
 @app.get("/ged_stored_collections", description="Returns a list of all stored collections")
 async def ged_stored_collections(current_user: User = Depends(get_current_active_user)):
     if current_user.role in ['admin', 'user']:
@@ -430,7 +392,6 @@ async def ged_stored_collections(current_user: User = Depends(get_current_active
 
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
-
 
 @app.post("/ged_file_to_json_file", description="Returns a converted JSON file from a ged-file"
                                                 "without storing it in the database")
@@ -454,7 +415,6 @@ async def ged_collection_to_json_file(file: UploadFile,
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
 
-
 @app.post("/modify_user_password", description="Modify an exiting user password, restricted to admin privileges")
 async def modify_user_password(
         user_name: str = Form(description="user name that needs its password to "
@@ -468,7 +428,6 @@ async def modify_user_password(
 
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
-
 
 @app.post("/gold_file_converter", description="Returns an Excel with the estimated value in euros")
 async def gold_file_converter(file: UploadFile, price_per_kg: int,
@@ -492,7 +451,6 @@ async def gold_file_converter(file: UploadFile, price_per_kg: int,
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
 
-
 @app.post("/meps_file",
           description="loads a file with the list pression groups meetings of MEPs into the database")
 async def load_meps_file(file: UploadFile, current_user: User = Depends(get_current_active_user)):
@@ -509,7 +467,6 @@ async def load_meps_file(file: UploadFile, current_user: User = Depends(get_curr
             return {'response': messages.build_ok_action_string(user_name=current_user.username)}
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
-
 
 @app.get("/meps_file",
          description="loads a file with the list pression groups meetings of MEPs into the database")
@@ -553,7 +510,6 @@ async def get_meps_file(mep_name: Optional[str] = None,
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
 
-
 @app.get("/meps_file_fields_values",
          description="gets a file with the list of the values of fields")
 async def get_meps_file_selected_fields(current_user: User = Depends(get_current_active_user)):
@@ -578,7 +534,6 @@ async def get_meps_file_selected_fields(current_user: User = Depends(get_current
             raise HTTPException(status_code=404, detail=messages.nok_string_raw)
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
-
 
 @app.get("/meps_stats",
          description="get meps stats")
@@ -639,7 +594,6 @@ async def get_meps_stats(mep_name: Optional[str] = None,
     else:
         raise HTTPException(status_code=403, detail=messages.denied_entry)
 
-
 @app.get("/meps_stats_file",
          description="get meps stats file")
 async def get_meps_stats_file(mep_name: Optional[str] = None,
@@ -674,7 +628,6 @@ async def get_meps_stats_file(mep_name: Optional[str] = None,
 @app.post("/logout")
 async def logout():
     return {"message": "Disconnected, please log in again"}
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
