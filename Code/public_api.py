@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Créer un gestionnaire de logs qui écrit dans un fichier
-logHandler = logging.FileHandler('app_logs.json')
+logHandler = logging.FileHandler('logs/app_logs.json')
 
 # Utiliser le format JSON pour le gestionnaire de fichier
 formatter = jsonlogger.JsonFormatter()
@@ -118,7 +118,7 @@ def el_parametrizor(mode_debug=False):
         os.environ['PWD_MONGO'] = "rootmongopwd"
         os.environ['URL_FRONT'] = "http://localhost:8080"
 
-el_parametrizor(True)
+el_parametrizor(False)
 
 mongo_handler = MongoDbGed(address=os.environ['URL_MONGO'], user=os.environ['USR_MONGO'],
                            password=os.environ['PWD_MONGO'])
