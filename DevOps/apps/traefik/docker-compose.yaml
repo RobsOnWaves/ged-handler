@@ -1,0 +1,43 @@
+version: '3.7'
+
+services:
+  traefik:
+    image: traefik:v2.4
+    container_name: traefik
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik.toml:/etc/traefik/traefik.toml
+      - ./acme.json:/acme.json
+      - ./log:/var/log/traefik
+      - ./dynamic_conf.toml:/etc/traefik/dynamic_conf.toml
+    networks:
+      - web
+
+  blacklist_updater:
+    build: .
+    environment:
+      - API_KEY=toto
+      - DOWNLOAD_URL=https://api.abuseipdb.com/api/v2/blacklist
+      - TEMP_FILE=/home/robin/abuseip/abuseipdb-blacklist.txt
+      - IPSET_NAME=blacklist
+      - DYNAMIC_CONF_PATH=/etc/traefik/dynamic_conf.toml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Monture du socket Docker
+      - ./dynamic_conf.toml:/etc/traefik/dynamic_conf.toml
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
