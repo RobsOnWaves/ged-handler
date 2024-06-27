@@ -28,7 +28,7 @@ if __name__ == '__main__':
     family1.husband = ['123456']
     family1.wife = ['1213313']
     family1.children = ['12311414', '1232444']
-
+    print("hello")
     family2 = GedFileHandler.Family()
 
     family2.husband = ['012345644']
